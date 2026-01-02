@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Rio Paraguai (Cáceres) — Cota/Nível</title>
+<title>Rio Paraguai — Cotas (Cáceres, Ladário, Murtinho)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
@@ -54,10 +54,10 @@ summary{cursor:pointer; color:#cfe0ff; font-weight:650}
 </head>
 <body>
 <header>
-  <h1>Rio Paraguai — Cáceres (MT) · Plataforma de Cota/Nível</h1>
+  <h1>Rio Paraguai — Plataforma de Cotas (m)</h1>
   <div class="sub">
-    Monitoramento e análise interativa da <b>cota do rio</b> (série histórica), com estatísticas, extremos, casos raros, tendência (R²) e projeção.
-    <br/>Foco em apoiar <b>decisões públicas</b> (navegação, alerta de seca/cheia, planejamento hídrico).
+    Série histórica diária com estatísticas, extremos, casos raros, tendência (R²) e projeção.
+    <br/>Pensada para <b>policy makers</b> (seca/cheia, navegação, planejamento hídrico).
   </div>
 </header>
 
@@ -65,6 +65,10 @@ summary{cursor:pointer; color:#cfe0ff; font-weight:650}
   <div class="card">
     <h2>Gráfico</h2>
     <div class="row">
+      <div>
+        <label>Estação</label><br/>
+        <select id="station"></select>
+      </div>
       <div>
         <label>Período</label><br/>
         <input id="start" type="date"> <span class="small">até</span> <input id="end" type="date">
@@ -131,20 +135,18 @@ summary{cursor:pointer; color:#cfe0ff; font-weight:650}
     </div>
 
     <div class="pills" id="meta"></div>
-
     <div id="plot"></div>
 
     <details>
       <summary>Como usar (tomada de decisão)</summary>
       <div class="small" style="margin-top:10px">
         <ul>
-          <li><b>Diária</b>: melhor para ver eventos extremos (picos e mínimos em dias específicos).</li>
-          <li><b>Mensal</b>: reduz ruído e ajuda a comparar sazonalidade (cheia/seca) entre anos.</li>
-          <li><b>Anual</b>: dá uma visão de longo prazo e permite avaliar mudanças estruturais.</li>
-          <li><b>Faixa 95%</b>: mostra a “normalidade” esperada no período selecionado; pontos fora disso merecem atenção.</li>
-          <li><b>Casos raros</b>: eventos ≤P1 e ≥P99 no recorte — úteis para alerta e planejamento.</li>
-          <li><b>Tendência + R²</b>: use para quantificar se há direção clara ao longo do tempo (atenção: tendência não explica causas).</li>
-          <li><b>Projeção</b>: é uma extrapolação do modelo escolhido — útil como cenário rápido, não substitui previsão hidrológica oficial.</li>
+          <li><b>Diária</b>: melhor para eventos extremos (picos e mínimos).</li>
+          <li><b>Mensal</b>: reduz ruído e evidencia sazonalidade (cheia/seca) entre anos.</li>
+          <li><b>Anual</b>: visão de longo prazo (mudanças estruturais).</li>
+          <li><b>Faixa 95%</b>: normalidade esperada no período selecionado; pontos fora disso merecem atenção.</li>
+          <li><b>Casos raros</b>: ≤P1 e ≥P99 (recorte) — útil para alertas e planejamento.</li>
+          <li><b>Projeção</b>: extrapolação do modelo (cenário rápido; não substitui previsão oficial).</li>
         </ul>
       </div>
     </details>
@@ -172,28 +174,19 @@ summary{cursor:pointer; color:#cfe0ff; font-weight:650}
     <hr/>
 
     <h2>Casos raros no recorte</h2>
-    <div class="small">Definição automática: ≤P1 (muito baixo) e ≥P99 (muito alto).</div>
+    <div class="small">Definição: ≤P1 (muito baixo) e ≥P99 (muito alto) dentro do recorte.</div>
     <div style="margin-top:10px; max-height:290px; overflow:auto; border:1px solid var(--border); border-radius:14px">
       <table>
         <thead><tr><th>Data</th><th>Cota (m)</th><th>Tipo</th></tr></thead>
         <tbody id="rare"></tbody>
       </table>
     </div>
-
-    <hr/>
-
-    <div class="small">
-      <span class="badge ok">Uso recomendado</span>
-      <div style="margin-top:8px">
-        Para policy makers: filtre o período (ex. últimos 20 anos), use <b>mensal</b> para comparar sazonalidade,
-        e ative <b>faixa 95%</b> para detectar desvios. Em seguida, verifique os <b>casos raros</b> e os dias extremos.
-      </div>
-    </div>
   </div>
 </div>
 
 <script>
-const CSV_URL = "./rio_paraguai_caceres_cota_diaria.csv";
+const CSV_URL = "./rio_paraguai_estacoes_cota_diaria.csv";
+let rawAll = [];
 let raw = [];
 let filteredDaily = [];
 
@@ -326,11 +319,12 @@ function logisticFit(xi, y){
 }
 function buildRareTable(daily){
   const ys = daily.map(d=>d.y).filter(Number.isFinite);
+  const tbody = document.getElementById("rare");
+  tbody.innerHTML="";
+  if (!ys.length) return;
   const p1 = quantile(ys, 0.01);
   const p99 = quantile(ys, 0.99);
   const rare = daily.filter(d=>d.y<=p1 || d.y>=p99).sort((a,b)=>a.date-b.date);
-  const tbody = document.getElementById("rare");
-  tbody.innerHTML="";
   for (const r of rare.slice(0, 2000)) {
     const tr = document.createElement("tr");
     const typ = r.y<=p1 ? "<span class='badge bad'>Muito baixo</span>" : "<span class='badge ok'>Muito alto</span>";
@@ -475,24 +469,41 @@ function downloadCSV(){
   const blob = new Blob([header+body], {type:"text/csv;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "rio_paraguai_caceres_recorte.csv";
+  a.download = "rio_paraguai_"+document.getElementById("station").value+"_recorte.csv";
   document.body.appendChild(a); a.click(); a.remove();
+}
+function setStation(name){
+  raw = rawAll.filter(r=>r.station===name);
+  const minD = raw[0].date.toISOString().slice(0,10);
+  const maxD = raw[raw.length-1].date.toISOString().slice(0,10);
+  document.getElementById("start").value=minD;
+  document.getElementById("end").value=maxD;
 }
 async function load(){
   const res = await fetch(CSV_URL, {cache:"no-store"});
   const text = await res.text();
   const parsed = Papa.parse(text, {header:true, dynamicTyping:true, skipEmptyLines:true});
-  raw = parsed.data
-    .filter(r=>r.date_str && Number.isFinite(r.cota_m))
-    .map(r=>({date:new Date(r.date_str+"T00:00:00"), y:Number(r.cota_m)}))
+  rawAll = parsed.data
+    .filter(r=>r.station && r.date_str && Number.isFinite(r.cota_m))
+    .map(r=>({station:r.station, date:new Date(r.date_str+"T00:00:00"), y:Number(r.cota_m)}))
     .sort((a,b)=>a.date-b.date);
 
-  const minD = raw[0].date.toISOString().slice(0,10);
-  const maxD = raw[raw.length-1].date.toISOString().slice(0,10);
-  document.getElementById("start").value = minD;
-  document.getElementById("end").value = maxD;
-
+  const stations = Array.from(new Set(rawAll.map(r=>r.station))).sort();
+  const sel = document.getElementById("station");
+  sel.innerHTML="";
+  for (const s of stations){
+    const opt=document.createElement("option");
+    opt.value=s; opt.textContent=s;
+    sel.appendChild(opt);
+  }
+  sel.value = stations.includes("Cáceres") ? "Cáceres" : stations[0];
+  setStation(sel.value);
   buildPlot();
+
+  sel.addEventListener("change", ()=>{
+    setStation(sel.value);
+    buildPlot();
+  });
 }
 document.getElementById("apply").addEventListener("click", buildPlot);
 document.getElementById("reset").addEventListener("click", ()=>{
@@ -501,13 +512,10 @@ document.getElementById("reset").addEventListener("click", ()=>{
   document.getElementById("band").value="p95";
   document.getElementById("model").value="none";
   document.getElementById("horizon").value="0";
-  const minD = raw[0].date.toISOString().slice(0,10);
-  const maxD = raw[raw.length-1].date.toISOString().slice(0,10);
-  document.getElementById("start").value=minD;
-  document.getElementById("end").value=maxD;
+  setStation(document.getElementById("station").value);
   buildPlot();
 });
-document.getElementById("png").addEventListener("click", ()=>Plotly.downloadImage("plot", {format:"png", filename:"rio_paraguai_caceres_cota"}));
+document.getElementById("png").addEventListener("click", ()=>Plotly.downloadImage("plot", {format:"png", filename:"rio_paraguai_cota"}));
 document.getElementById("csv").addEventListener("click", downloadCSV);
 load();
 </script>
