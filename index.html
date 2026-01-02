@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Rio Paraguai (Cáceres) — Cota/Nível</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net"/>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root{
+  --bg:#0b1220; --card:#111a2e; --muted:#9fb0d0; --text:#e8eefc;
+  --accent:#3dd6c0; --accent2:#6aa8ff; --warn:#ffcc66; --bad:#ff6b6b;
+  --ok:#4ade80; --border:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:
+radial-gradient(1200px 700px at 10% 0%, rgba(106,168,255,.18), transparent 55%),
+radial-gradient(900px 600px at 100% 10%, rgba(61,214,192,.16), transparent 55%),
+var(--bg); color:var(--text);}
+header{padding:20px 16px 10px; max-width:1200px; margin:0 auto;}
+h1{margin:0; font-size:20px; letter-spacing:.2px}
+.sub{color:var(--muted); margin-top:6px; line-height:1.35}
+.grid{display:grid; gap:12px; grid-template-columns: 1.2fr .8fr; max-width:1200px; margin:0 auto; padding:12px 16px 22px;}
+.card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid var(--border); border-radius:16px; padding:14px;}
+.card h2{margin:0 0 10px; font-size:14px; color:#cfe0ff; font-weight:650}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+label{font-size:12px; color:var(--muted)}
+input, select, button{background:#0e1730; border:1px solid var(--border); color:var(--text); border-radius:10px; padding:9px 10px; font-size:13px}
+input[type="date"]{padding:8px 10px}
+button{cursor:pointer}
+button.primary{border-color:rgba(61,214,192,.35); background:rgba(61,214,192,.10)}
+button.ghost{background:transparent}
+.pills{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+.pill{font-size:12px; padding:6px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted)}
+.pill b{color:var(--text)}
+.small{font-size:12px; color:var(--muted); line-height:1.45}
+#plot{width:100%; height:520px;}
+.kpis{display:grid; grid-template-columns: repeat(2, 1fr); gap:10px;}
+.kpi{padding:10px; border:1px solid var(--border); border-radius:14px; background:rgba(0,0,0,.12)}
+.kpi .t{font-size:12px; color:var(--muted)}
+.kpi .v{font-size:18px; font-weight:750; margin-top:4px}
+hr{border:none; border-top:1px solid var(--border); margin:12px 0}
+table{width:100%; border-collapse:collapse; font-size:12px}
+th,td{border-bottom:1px solid var(--border); padding:8px 6px; text-align:left}
+th{color:#cfe0ff; font-weight:650}
+.badge{display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid var(--border); font-size:11px}
+.badge.bad{border-color:rgba(255,107,107,.35); color:#ffd1d1}
+.badge.ok{border-color:rgba(74,222,128,.35); color:#c7ffd7}
+@media (max-width: 980px){ .grid{grid-template-columns:1fr} #plot{height:460px} }
+details{border:1px solid var(--border); border-radius:14px; padding:10px; background:rgba(0,0,0,.10)}
+summary{cursor:pointer; color:#cfe0ff; font-weight:650}
+</style>
+</head>
+<body>
+<header>
+  <h1>Rio Paraguai — Cáceres (MT) · Plataforma de Cota/Nível</h1>
+  <div class="sub">
+    Monitoramento e análise interativa da <b>cota do rio</b> (série histórica), com estatísticas, extremos, casos raros, tendência (R²) e projeção.
+    <br/>Foco em apoiar <b>decisões públicas</b> (navegação, alerta de seca/cheia, planejamento hídrico).
+  </div>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2>Gráfico</h2>
+    <div class="row">
+      <div>
+        <label>Período</label><br/>
+        <input id="start" type="date"> <span class="small">até</span> <input id="end" type="date">
+      </div>
+      <div>
+        <label>Escala</label><br/>
+        <select id="scale">
+          <option value="daily">Diária</option>
+          <option value="monthly">Mensal (agregado)</option>
+          <option value="annual">Anual (agregado)</option>
+        </select>
+      </div>
+      <div>
+        <label>Agregação</label><br/>
+        <select id="agg">
+          <option value="mean">Média</option>
+          <option value="median">Mediana</option>
+          <option value="min">Mínimo</option>
+          <option value="max">Máximo</option>
+        </select>
+      </div>
+      <div>
+        <label>Faixa (incerteza)</label><br/>
+        <select id="band">
+          <option value="p95">Intervalo 95% (P2.5–P97.5)</option>
+          <option value="minmax">Min–Máx</option>
+          <option value="none">Sem faixa</option>
+        </select>
+      </div>
+      <div style="flex:1"></div>
+      <button class="primary" id="apply">Aplicar</button>
+      <button class="ghost" id="reset">Reset</button>
+    </div>
+
+    <hr/>
+
+    <div class="row">
+      <div>
+        <label>Tendência</label><br/>
+        <select id="model">
+          <option value="none">Sem tendência</option>
+          <option value="linear">Linear</option>
+          <option value="poly2">Polinomial (grau 2)</option>
+          <option value="poly3">Polinomial (grau 3)</option>
+          <option value="exp">Exponencial</option>
+          <option value="logistic">Logística</option>
+        </select>
+      </div>
+      <div>
+        <label>Projeção</label><br/>
+        <select id="horizon">
+          <option value="0">Sem projeção</option>
+          <option value="30">30 dias</option>
+          <option value="90">90 dias</option>
+          <option value="180">180 dias</option>
+          <option value="365">1 ano</option>
+          <option value="730">2 anos</option>
+        </select>
+      </div>
+      <div class="small" id="r2box" style="margin-top:18px"></div>
+      <div style="flex:1"></div>
+      <button id="png">Baixar PNG</button>
+      <button id="csv">Baixar CSV (recorte)</button>
+    </div>
+
+    <div class="pills" id="meta"></div>
+
+    <div id="plot"></div>
+
+    <details>
+      <summary>Como usar (tomada de decisão)</summary>
+      <div class="small" style="margin-top:10px">
+        <ul>
+          <li><b>Diária</b>: melhor para ver eventos extremos (picos e mínimos em dias específicos).</li>
+          <li><b>Mensal</b>: reduz ruído e ajuda a comparar sazonalidade (cheia/seca) entre anos.</li>
+          <li><b>Anual</b>: dá uma visão de longo prazo e permite avaliar mudanças estruturais.</li>
+          <li><b>Faixa 95%</b>: mostra a “normalidade” esperada no período selecionado; pontos fora disso merecem atenção.</li>
+          <li><b>Casos raros</b>: eventos ≤P1 e ≥P99 no recorte — úteis para alerta e planejamento.</li>
+          <li><b>Tendência + R²</b>: use para quantificar se há direção clara ao longo do tempo (atenção: tendência não explica causas).</li>
+          <li><b>Projeção</b>: é uma extrapolação do modelo escolhido — útil como cenário rápido, não substitui previsão hidrológica oficial.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Resumo do período selecionado</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="t">Média</div><div class="v" id="k_mean">—</div></div>
+      <div class="kpi"><div class="t">Mediana</div><div class="v" id="k_med">—</div></div>
+      <div class="kpi"><div class="t">Mínimo</div><div class="v" id="k_min">—</div></div>
+      <div class="kpi"><div class="t">Máximo</div><div class="v" id="k_max">—</div></div>
+      <div class="kpi"><div class="t">P2.5</div><div class="v" id="k_p025">—</div></div>
+      <div class="kpi"><div class="t">P97.5</div><div class="v" id="k_p975">—</div></div>
+    </div>
+
+    <hr/>
+
+    <div class="small">
+      <div><b>Dia mais raso:</b> <span id="shallow">—</span></div>
+      <div><b>Dia mais fundo:</b> <span id="deep">—</span></div>
+      <div style="margin-top:8px" id="gaps">—</div>
+    </div>
+
+    <hr/>
+
+    <h2>Casos raros no recorte</h2>
+    <div class="small">Definição automática: ≤P1 (muito baixo) e ≥P99 (muito alto).</div>
+    <div style="margin-top:10px; max-height:290px; overflow:auto; border:1px solid var(--border); border-radius:14px">
+      <table>
+        <thead><tr><th>Data</th><th>Cota (m)</th><th>Tipo</th></tr></thead>
+        <tbody id="rare"></tbody>
+      </table>
+    </div>
+
+    <hr/>
+
+    <div class="small">
+      <span class="badge ok">Uso recomendado</span>
+      <div style="margin-top:8px">
+        Para policy makers: filtre o período (ex. últimos 20 anos), use <b>mensal</b> para comparar sazonalidade,
+        e ative <b>faixa 95%</b> para detectar desvios. Em seguida, verifique os <b>casos raros</b> e os dias extremos.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSV_URL = "./rio_paraguai_caceres_cota_diaria.csv";
+let raw = [];
+let filteredDaily = [];
+
+function fmt(x){
+  if (x===null || x===undefined || isNaN(x)) return "—";
+  return (Math.round(x*100)/100).toFixed(2) + " m";
+}
+function quantile(arr, q){
+  if (!arr.length) return NaN;
+  const a = arr.slice().sort((x,y)=>x-y);
+  const pos = (a.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  return a[base+1] !== undefined ? a[base] + rest * (a[base+1]-a[base]) : a[base];
+}
+function groupByPeriod(data, scale, agg){
+  const map = new Map();
+  for (const d of data){
+    const dt = d.date;
+    let key;
+    if (scale==="monthly") key = dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");
+    else if (scale==="annual") key = String(dt.getFullYear());
+    else key = dt.toISOString().slice(0,10);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(d.y);
+  }
+  const keys = Array.from(map.keys()).sort();
+  const x = [], y = [], lo = [], hi = [], minv=[], maxv=[];
+  for (const key of keys){
+    const vals = map.get(key).filter(v=>Number.isFinite(v));
+    if (!vals.length) continue;
+    let v;
+    if (agg==="mean") v = vals.reduce((a,b)=>a+b,0)/vals.length;
+    else if (agg==="median") v = quantile(vals, 0.5);
+    else if (agg==="min") v = Math.min(...vals);
+    else if (agg==="max") v = Math.max(...vals);
+    y.push(v);
+    minv.push(Math.min(...vals));
+    maxv.push(Math.max(...vals));
+    lo.push(quantile(vals, 0.025));
+    hi.push(quantile(vals, 0.975));
+    if (scale==="monthly") x.push(new Date(key+"-15T00:00:00"));
+    else if (scale==="annual") x.push(new Date(key+"-07-01T00:00:00"));
+    else x.push(new Date(key+"T00:00:00"));
+  }
+  return {x,y,lo,hi,minv,maxv};
+}
+function rSquared(y, yhat){
+  const ym = y.reduce((a,b)=>a+b,0)/y.length;
+  let ssRes=0, ssTot=0;
+  for (let i=0;i<y.length;i++){ ssRes += (y[i]-yhat[i])**2; ssTot += (y[i]-ym)**2; }
+  return ssTot===0 ? NaN : 1 - ssRes/ssTot;
+}
+function linfit(xi, y){
+  const n=y.length;
+  const xm = xi.reduce((a,b)=>a+b,0)/n;
+  const ym = y.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  for (let i=0;i<n;i++){ num += (xi[i]-xm)*(y[i]-ym); den += (xi[i]-xm)**2; }
+  const b = den===0?0:num/den;
+  const a = ym - b*xm;
+  const yhat = xi.map(t=>a+b*t);
+  return {params:[a,b], yhat, r2:rSquared(y,yhat)};
+}
+function polyfit(xi, y, deg){
+  const n = xi.length;
+  const m = deg+1;
+  const XtX = Array.from({length:m}, ()=>Array(m).fill(0));
+  const Xty = Array(m).fill(0);
+  for (let i=0;i<n;i++){
+    const row = [];
+    for (let p=0;p<=deg;p++) row.push(xi[i]**p);
+    for (let r=0;r<m;r++){
+      Xty[r]+= row[r]*y[i];
+      for (let c=0;c<m;c++) XtX[r][c]+= row[r]*row[c];
+    }
+  }
+  const A = XtX.map((row,i)=>row.concat([Xty[i]]));
+  for (let i=0;i<m;i++){
+    let piv=i;
+    for (let r=i+1;r<m;r++) if (Math.abs(A[r][i])>Math.abs(A[piv][i])) piv=r;
+    [A[i],A[piv]]=[A[piv],A[i]];
+    const div=A[i][i]||1e-12;
+    for (let c=i;c<m+1;c++) A[i][c]/=div;
+    for (let r=0;r<m;r++) if (r!==i){
+      const factor=A[r][i];
+      for (let c=i;c<m+1;c++) A[r][c]-=factor*A[i][c];
+    }
+  }
+  const coef = A.map(row=>row[m]);
+  const yhat = xi.map(t=>coef.reduce((acc,cc,p)=>acc+cc*(t**p),0));
+  return {params:coef, yhat, r2:rSquared(y,yhat)};
+}
+function expfit(xi, y){
+  const pairs = xi.map((t,i)=>[t,y[i]]).filter(p=>p[1]>0 && Number.isFinite(p[1]));
+  if (pairs.length < 5) return null;
+  const x = pairs.map(p=>p[0]);
+  const ly = pairs.map(p=>Math.log(p[1]));
+  const lf = linfit(x, ly);
+  const a = Math.exp(lf.params[0]);
+  const b = lf.params[1];
+  const yhat = xi.map(t=>a*Math.exp(b*t));
+  return {params:[a,b], yhat, r2:rSquared(y,yhat)};
+}
+function logisticFit(xi, y){
+  const yMax = Math.max(...y);
+  const L = yMax;
+  if (!Number.isFinite(L) || L<=0) return null;
+  let best=null;
+  const xMin = Math.min(...xi), xMax = Math.max(...xi);
+  for (let step=0; step<12; step++){
+    const x0 = xMin + (xMax-xMin)*(step/11);
+    const tr = [];
+    for (let i=0;i<xi.length;i++){
+      const yy = y[i];
+      if (yy<=0 || yy>=L) continue;
+      const v = Math.log((L/yy) - 1);
+      if (Number.isFinite(v)) tr.push([xi[i]-x0, v]);
+    }
+    if (tr.length < 10) continue;
+    const x = tr.map(p=>p[0]);
+    const v = tr.map(p=>p[1]);
+    const lf = linfit(x, v);
+    const k = -lf.params[1];
+    const yhat = xi.map(t=> L/(1+Math.exp(-k*(t-x0))) );
+    const r2 = rSquared(y, yhat);
+    if (!best || (Number.isFinite(r2) && r2>best.r2)) best={params:[L,k,x0], yhat, r2};
+  }
+  return best;
+}
+function buildRareTable(daily){
+  const ys = daily.map(d=>d.y).filter(Number.isFinite);
+  const p1 = quantile(ys, 0.01);
+  const p99 = quantile(ys, 0.99);
+  const rare = daily.filter(d=>d.y<=p1 || d.y>=p99).sort((a,b)=>a.date-b.date);
+  const tbody = document.getElementById("rare");
+  tbody.innerHTML="";
+  for (const r of rare.slice(0, 2000)) {
+    const tr = document.createElement("tr");
+    const typ = r.y<=p1 ? "<span class='badge bad'>Muito baixo</span>" : "<span class='badge ok'>Muito alto</span>";
+    tr.innerHTML = "<td>"+r.date.toISOString().slice(0,10)+"</td><td>"+r.y.toFixed(2)+"</td><td>"+typ+"</td>";
+    tbody.appendChild(tr);
+  }
+}
+function computeGaps(daily){
+  const years = new Set(daily.map(d=>d.date.getFullYear()));
+  const arr = Array.from(years);
+  const el = document.getElementById("gaps");
+  if (!arr.length){ el.textContent="—"; return; }
+  const yMin = Math.min(...arr), yMax = Math.max(...arr);
+  const missing=[];
+  for (let y=yMin;y<=yMax;y++) if (!years.has(y)) missing.push(y);
+  if (!missing.length) el.innerHTML = "<span class='badge ok'>Série contínua</span> Sem anos faltantes no recorte.";
+  else el.innerHTML = "<span class='badge bad'>Atenção</span> Há anos faltantes no recorte: <b>"+missing.join(", ")+"</b>.";
+}
+function updateKPIs(daily){
+  const ys = daily.map(d=>d.y).filter(Number.isFinite);
+  if (!ys.length) return;
+  const mean = ys.reduce((a,b)=>a+b,0)/ys.length;
+  const med = quantile(ys, 0.5);
+  const mn = Math.min(...ys), mx = Math.max(...ys);
+  const p025 = quantile(ys, 0.025), p975 = quantile(ys, 0.975);
+  document.getElementById("k_mean").textContent = fmt(mean);
+  document.getElementById("k_med").textContent = fmt(med);
+  document.getElementById("k_min").textContent = fmt(mn);
+  document.getElementById("k_max").textContent = fmt(mx);
+  document.getElementById("k_p025").textContent = fmt(p025);
+  document.getElementById("k_p975").textContent = fmt(p975);
+
+  const dmin = daily.reduce((a,b)=> b.y < a.y ? b : a, daily[0]);
+  const dmax = daily.reduce((a,b)=> b.y > a.y ? b : a, daily[0]);
+  document.getElementById("shallow").innerHTML = dmin.date.toISOString().slice(0,10)+" · <b>"+dmin.y.toFixed(2)+" m</b>";
+  document.getElementById("deep").innerHTML = dmax.date.toISOString().slice(0,10)+" · <b>"+dmax.y.toFixed(2)+" m</b>";
+
+  const meta = document.getElementById("meta");
+  const start = daily[0].date.toISOString().slice(0,10);
+  const end = daily[daily.length-1].date.toISOString().slice(0,10);
+  meta.innerHTML =
+    "<div class='pill'>Registros: <b>"+ys.length+"</b></div>"+
+    "<div class='pill'>Período: <b>"+start+"</b> → <b>"+end+"</b></div>"+
+    "<div class='pill'>Amplitude: <b>"+(mx-mn).toFixed(2)+" m</b></div>";
+}
+function buildPlot(){
+  const start = new Date(document.getElementById("start").value);
+  const end = new Date(document.getElementById("end").value);
+  const scale = document.getElementById("scale").value;
+  const agg = document.getElementById("agg").value;
+  const band = document.getElementById("band").value;
+  const model = document.getElementById("model").value;
+  const horizon = parseInt(document.getElementById("horizon").value,10);
+
+  filteredDaily = raw.filter(d=>d.date>=start && d.date<=end);
+  updateKPIs(filteredDaily);
+  computeGaps(filteredDaily);
+  buildRareTable(filteredDaily);
+
+  const grouped = groupByPeriod(filteredDaily, scale, agg);
+  const traces = [];
+
+  if (band!=="none"){
+    const lower = (band==="p95") ? grouped.lo : grouped.minv;
+    const upper = (band==="p95") ? grouped.hi : grouped.maxv;
+    traces.push({x: grouped.x, y: upper, type:"scatter", mode:"lines", line:{width:0}, hoverinfo:"skip", showlegend:false});
+    traces.push({x: grouped.x, y: lower, type:"scatter", mode:"lines", fill:"tonexty", line:{width:0}, name:(band==="p95"?"Intervalo 95%":"Min–Máx"), hoverinfo:"skip"});
+  }
+
+  traces.push({
+    x: grouped.x, y: grouped.y, type:"scatter", mode:"lines+markers",
+    name: (scale==="daily" ? "Cota diária" : (scale==="monthly" ? "Cota mensal (agregada)" : "Cota anual (agregada)")),
+    marker:{size:5}, line:{width:2}
+  });
+
+  let r2txt = "";
+  if (model!=="none" && grouped.y.length>=10){
+    const xi = grouped.x.map((d,i)=>i);
+    let fit=null;
+    if (model==="linear") fit = linfit(xi, grouped.y);
+    if (model==="poly2") fit = polyfit(xi, grouped.y, 2);
+    if (model==="poly3") fit = polyfit(xi, grouped.y, 3);
+    if (model==="exp") fit = expfit(xi, grouped.y);
+    if (model==="logistic") fit = logisticFit(xi, grouped.y);
+
+    if (fit){
+      traces.push({x: grouped.x, y: fit.yhat, type:"scatter", mode:"lines", name:"Tendência ("+model+")", line:{dash:"dot", width:3}});
+      if (Number.isFinite(fit.r2)) r2txt = "<b>R²:</b> "+fit.r2.toFixed(3)+" · modelo: <b>"+model+"</b>";
+
+      if (horizon>0){
+        let stepDays = 1;
+        if (scale==="monthly") stepDays = 30;
+        if (scale==="annual") stepDays = 365;
+        const nSteps = Math.max(1, Math.round(horizon/stepDays));
+        const lastX = grouped.x[grouped.x.length-1];
+        const projX = [];
+        for (let j=1;j<=nSteps;j++){
+          const nd = new Date(lastX.getTime());
+          nd.setDate(nd.getDate() + j*stepDays);
+          projX.push(nd);
+        }
+        const xi2 = [];
+        const startIdx = grouped.x.length-1;
+        for (let j=1;j<=nSteps;j++) xi2.push(startIdx+j);
+
+        let yhat2=[];
+        if (model==="linear"){
+          const a=fit.params[0], b=fit.params[1];
+          yhat2 = xi2.map(t=>a+b*t);
+        } else if (model==="poly2" || model==="poly3"){
+          const coef=fit.params;
+          yhat2 = xi2.map(t=>coef.reduce((acc,c,p)=>acc+c*(t**p),0));
+        } else if (model==="exp"){
+          const a=fit.params[0], b=fit.params[1];
+          yhat2 = xi2.map(t=>a*Math.exp(b*t));
+        } else if (model==="logistic"){
+          const L=fit.params[0], k=fit.params[1], x0=fit.params[2];
+          yhat2 = xi2.map(t=>L/(1+Math.exp(-k*(t-x0))));
+        }
+        traces.push({x: projX, y: yhat2, type:"scatter", mode:"lines+markers", name:"Projeção ("+horizon+"d)", marker:{size:5}, line:{dash:"dash", width:2}});
+      }
+    }
+  }
+  document.getElementById("r2box").innerHTML = r2txt;
+
+  const layout = {
+    paper_bgcolor:"rgba(0,0,0,0)",
+    plot_bgcolor:"rgba(0,0,0,0)",
+    margin:{l:60,r:20,t:10,b:50},
+    xaxis:{title:"Tempo", gridcolor:"rgba(255,255,255,.06)"},
+    yaxis:{title:"Cota (m)", gridcolor:"rgba(255,255,255,.06)", zeroline:false},
+    legend:{orientation:"h", yanchor:"bottom", y:1.02, xanchor:"left", x:0},
+    hovermode:"x unified"
+  };
+
+  Plotly.newPlot("plot", traces, layout, {responsive:true, displaylogo:false});
+}
+function downloadCSV(){
+  const rows = filteredDaily.map(d=>({date: d.date.toISOString().slice(0,10), cota_m: d.y}));
+  const header = "date,cota_m\n";
+  const body = rows.map(r=>r.date+","+r.cota_m.toFixed(3)).join("\n");
+  const blob = new Blob([header+body], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "rio_paraguai_caceres_recorte.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function load(){
+  const res = await fetch(CSV_URL, {cache:"no-store"});
+  const text = await res.text();
+  const parsed = Papa.parse(text, {header:true, dynamicTyping:true, skipEmptyLines:true});
+  raw = parsed.data
+    .filter(r=>r.date_str && Number.isFinite(r.cota_m))
+    .map(r=>({date:new Date(r.date_str+"T00:00:00"), y:Number(r.cota_m)}))
+    .sort((a,b)=>a.date-b.date);
+
+  const minD = raw[0].date.toISOString().slice(0,10);
+  const maxD = raw[raw.length-1].date.toISOString().slice(0,10);
+  document.getElementById("start").value = minD;
+  document.getElementById("end").value = maxD;
+
+  buildPlot();
+}
+document.getElementById("apply").addEventListener("click", buildPlot);
+document.getElementById("reset").addEventListener("click", ()=>{
+  document.getElementById("scale").value="daily";
+  document.getElementById("agg").value="mean";
+  document.getElementById("band").value="p95";
+  document.getElementById("model").value="none";
+  document.getElementById("horizon").value="0";
+  const minD = raw[0].date.toISOString().slice(0,10);
+  const maxD = raw[raw.length-1].date.toISOString().slice(0,10);
+  document.getElementById("start").value=minD;
+  document.getElementById("end").value=maxD;
+  buildPlot();
+});
+document.getElementById("png").addEventListener("click", ()=>Plotly.downloadImage("plot", {format:"png", filename:"rio_paraguai_caceres_cota"}));
+document.getElementById("csv").addEventListener("click", downloadCSV);
+load();
+</script>
+</body>
+</html>
