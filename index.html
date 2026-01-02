@@ -1,1 +1,742 @@
-<!doctype html><html><body>Missing index.html</body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Rio Paraguai — Cotas (Cáceres, Ladário, Porto Murtinho)</title>
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#061022;
+      --card:#0a1a33;
+      --muted:#a8b7d8;
+      --text:#e9f1ff;
+      --border:rgba(255,255,255,.10);
+      --accent: rgba(110,190,255,.95);
+      --accent2: rgba(110,190,255,.22);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(110,190,255,.18), transparent 55%),
+        radial-gradient(900px 600px at 100% 10%, rgba(90,230,190,.12), transparent 55%),
+        var(--bg);
+    }
+    header{max-width:1240px; margin:0 auto; padding:18px 16px 10px;}
+    h1{margin:0; font-size:20px; letter-spacing:.2px}
+    .sub{color:var(--muted); margin-top:6px; line-height:1.35}
+    .grid{max-width:1240px; margin:0 auto; padding:12px 16px 22px; display:grid; gap:12px; grid-template-columns: 1.25fr .75fr;}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+    }
+    .card h2{margin:0 0 10px; font-size:14px; color:#d7e6ff; font-weight:800}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    label{font-size:12px; color:var(--muted)}
+    input, select, button{
+      background:#07152d; border:1px solid var(--border); color:var(--text);
+      border-radius:10px; padding:9px 10px; font-size:13px;
+    }
+    input[type="date"]{padding:8px 10px}
+    button{cursor:pointer}
+    button.primary{border-color:rgba(110,190,255,.45); background:rgba(110,190,255,.12)}
+    button.ghost{background:transparent}
+    .small{font-size:12px; color:var(--muted); line-height:1.45}
+    #plot{width:100%; height:560px;}
+    .pills{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+    .pill{font-size:12px; padding:6px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted)}
+    .pill b{color:var(--text)}
+    hr{border:none; border-top:1px solid var(--border); margin:12px 0}
+    table{width:100%; border-collapse:collapse; font-size:12px}
+    th,td{border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; vertical-align:top}
+    th{color:#d7e6ff; font-weight:800}
+    .badge{display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid var(--border); font-size:11px; color:var(--text)}
+    .footer{max-width:1240px; margin:0 auto; padding:0 16px 18px; color:var(--muted); font-size:12px}
+    details{border:1px solid var(--border); border-radius:14px; padding:10px; background:rgba(0,0,0,.10)}
+    summary{cursor:pointer; color:#d7e6ff; font-weight:800}
+    .checkbox{
+      display:flex; gap:10px; align-items:center; padding:7px 10px;
+      border:1px solid var(--border); border-radius:12px; background:rgba(0,0,0,.10)
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      #plot{height:460px}
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Rio Paraguai — Plataforma de Cotas (m)</h1>
+  <div class="sub">
+    Série histórica diária com estatísticas, extremos (records), casos raros, tendência (R²) e projeções.
+    <br/><b>Dados hidrométricos:</b> Marinha do Brasil · <b>Organização dos dados:</b> Claumir Muniz · <b>Plataforma idealizada por:</b> Ernandes Sobreira
+  </div>
+</header>
+
+<div class="grid">
+  <!-- ESQUERDA: gráfico -->
+  <div class="card">
+    <h2>Comparar estações (no mesmo gráfico)</h2>
+    <div class="row">
+      <div class="checkbox"><input type="checkbox" id="st_caceres" checked> <label for="st_caceres">Cáceres</label></div>
+      <div class="checkbox"><input type="checkbox" id="st_ladario" checked> <label for="st_ladario">Ladário</label></div>
+      <div class="checkbox"><input type="checkbox" id="st_pm" checked> <label for="st_pm">Porto Murtinho</label></div>
+
+      <div style="flex:1"></div>
+      <button id="png">Baixar PNG</button>
+      <button id="csv">Baixar CSV (recorte)</button>
+    </div>
+
+    <hr/>
+
+    <div class="row">
+      <div>
+        <label>Período</label><br/>
+        <input id="start" type="date">
+        <span class="small">até</span>
+        <input id="end" type="date">
+      </div>
+
+      <div>
+        <label>Escala</label><br/>
+        <select id="scale">
+          <option value="daily">Diária</option>
+          <option value="monthly">Mensal (agregado)</option>
+          <option value="annual">Anual (agregado)</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Agregação</label><br/>
+        <select id="agg">
+          <option value="mean">Média</option>
+          <option value="median">Mediana</option>
+          <option value="min">Mínimo</option>
+          <option value="max">Máximo</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Faixa</label><br/>
+        <select id="band">
+          <option value="p95">P2.5–P97.5 (95%)</option>
+          <option value="p90">P5–P95 (90%)</option>
+          <option value="p80">P10–P90 (80%)</option>
+          <option value="minmax">Min–Máx</option>
+          <option value="none">Sem faixa</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Tendência (e R²)</label><br/>
+        <select id="model">
+          <option value="none">Sem tendência</option>
+          <option value="linear">Linear</option>
+          <option value="poly2">Polinomial (grau 2)</option>
+          <option value="poly3">Polinomial (grau 3)</option>
+          <option value="exp">Exponencial</option>
+          <option value="logistic">Logística</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Projeção</label><br/>
+        <select id="horizon">
+          <option value="0">Sem projeção</option>
+          <option value="30">30 dias</option>
+          <option value="90">90 dias</option>
+          <option value="180">180 dias</option>
+          <option value="365">1 ano</option>
+          <option value="1825">5 anos</option>
+          <option value="3650">10 anos</option>
+          <option value="7300">20 anos</option>
+        </select>
+      </div>
+
+      <div style="flex:1"></div>
+      <button class="primary" id="apply">Aplicar</button>
+      <button class="ghost" id="reset">Reset</button>
+    </div>
+
+    <div class="pills" id="meta"></div>
+    <div class="small" id="r2box" style="margin-top:8px"></div>
+
+    <div id="plot"></div>
+
+    <details>
+      <summary>Como interpretar (para tomada de decisão)</summary>
+      <div class="small" style="margin-top:10px">
+        <ul>
+          <li><b>Compare estações</b> para entender como cheias e secas se propagam no sistema do Rio Paraguai.</li>
+          <li><b>Faixas (percentis)</b>: se percentis parecem “próximos” de min/máx, isso pode acontecer em recortes com baixa dispersão ou sazonalidade forte. Troque a faixa (90%, 80%, Min–Máx) para ver melhor.</li>
+          <li><b>Records</b> (dia mais baixo/alto) ajudam a comunicar risco e memória hidrológica.</li>
+          <li><b>Projeção</b> aqui é extrapolação estatística do modelo escolhido (cenário), não substitui previsão/boletim oficial.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <!-- DIREITA: painéis -->
+  <div class="card">
+    <h2>Records, sazonalidade e casos raros</h2>
+    <div class="small">Tudo abaixo se atualiza com o período selecionado e as estações marcadas.</div>
+
+    <hr/>
+    <h2>Records (dia mais baixo e mais alto)</h2>
+    <div style="max-height:180px; overflow:auto; border:1px solid var(--border); border-radius:14px">
+      <table>
+        <thead><tr><th>Estação</th><th>Recorde baixo</th><th>Recorde alto</th></tr></thead>
+        <tbody id="records"></tbody>
+      </table>
+    </div>
+
+    <hr/>
+    <h2>Sazonalidade “normal” (mês típico mais baixo/alto)</h2>
+    <div class="small">Calculado como média do mês dentro do recorte escolhido.</div>
+    <div style="max-height:220px; overflow:auto; border:1px solid var(--border); border-radius:14px">
+      <table>
+        <thead><tr><th>Estação</th><th>Mês mais baixo</th><th>Mês mais alto</th></tr></thead>
+        <tbody id="season"></tbody>
+      </table>
+    </div>
+
+    <hr/>
+    <h2>Casos raros no recorte</h2>
+    <div class="small">≤P1 (muito baixo) e ≥P99 (muito alto), por estação.</div>
+    <div style="margin-top:10px; max-height:260px; overflow:auto; border:1px solid var(--border); border-radius:14px">
+      <table>
+        <thead><tr><th>Estação</th><th>Data</th><th>Cota (m)</th><th>Tipo</th></tr></thead>
+        <tbody id="rare"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <b>Fonte:</b> Marinha do Brasil · <b>Organização:</b> Claumir Muniz · <b>Plataforma:</b> Ernandes Sobreira ·
+  <span id="footRange"></span>
+</div>
+
+<script>
+/** IMPORTANTE:
+ *  Garanta que este CSV exista na raiz do seu repositório:
+ *  rio_paraguai_estacoes_cota_diaria.csv
+ */
+const CSV_URL = "./rio_paraguai_estacoes_cota_diaria.csv";
+
+let rawAll = [];
+
+const COLORS = {
+  "Cáceres": {line:"rgba(110,190,255,.95)", band:"rgba(110,190,255,.22)"},
+  "Ladário": {line:"rgba(90,230,190,.95)", band:"rgba(90,230,190,.18)"},
+  "Porto Murtinho": {line:"rgba(90,210,255,.95)", band:"rgba(90,210,255,.18)"}
+};
+
+const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+// ---------- util ----------
+function quantile(arr, p){
+  if (!arr.length) return NaN;
+  const a = arr.slice().sort((x,y)=>x-y);
+  const pos = (a.length - 1) * p;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  return a[base+1] !== undefined ? a[base] + rest * (a[base+1]-a[base]) : a[base];
+}
+function r2(y, yhat){
+  const ym = y.reduce((a,b)=>a+b,0)/y.length;
+  let ssRes=0, ssTot=0;
+  for (let i=0;i<y.length;i++){ ssRes += (y[i]-yhat[i])**2; ssTot += (y[i]-ym)**2; }
+  return ssTot===0 ? NaN : 1 - ssRes/ssTot;
+}
+function selectedStations(){
+  const out=[];
+  if (document.getElementById("st_caceres").checked) out.push("Cáceres");
+  if (document.getElementById("st_ladario").checked) out.push("Ladário");
+  if (document.getElementById("st_pm").checked) out.push("Porto Murtinho");
+  return out;
+}
+
+// ---------- models ----------
+function linfit(xi, y){
+  const n=y.length;
+  const xm = xi.reduce((a,b)=>a+b,0)/n;
+  const ym = y.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  for (let i=0;i<n;i++){ num += (xi[i]-xm)*(y[i]-ym); den += (xi[i]-xm)**2; }
+  const b = den===0?0:num/den;
+  const a = ym - b*xm;
+  const yhat = xi.map(t=>a+b*t);
+  return {params:[a,b], yhat, r2:r2(y,yhat)};
+}
+function polyfit(xi, y, deg){
+  const n = xi.length;
+  const m = deg+1;
+  const XtX = Array.from({length:m}, ()=>Array(m).fill(0));
+  const Xty = Array(m).fill(0);
+  for (let i=0;i<n;i++){
+    const row = [];
+    for (let p=0;p<=deg;p++) row.push(xi[i]**p);
+    for (let r=0;r<m;r++){
+      Xty[r]+= row[r]*y[i];
+      for (let c=0;c<m;c++) XtX[r][c]+= row[r]*row[c];
+    }
+  }
+  const A = XtX.map((row,i)=>row.concat([Xty[i]]));
+  for (let i=0;i<m;i++){
+    let piv=i;
+    for (let r=i+1;r<m;r++) if (Math.abs(A[r][i])>Math.abs(A[piv][i])) piv=r;
+    [A[i],A[piv]]=[A[piv],A[i]];
+    const div=A[i][i]||1e-12;
+    for (let c=i;c<m+1;c++) A[i][c]/=div;
+    for (let r=0;r<m;r++) if (r!==i){
+      const factor=A[r][i];
+      for (let c=i;c<m+1;c++) A[r][c]-=factor*A[i][c];
+    }
+  }
+  const coef = A.map(row=>row[m]);
+  const yhat = xi.map(t=>coef.reduce((acc,cc,p)=>acc+cc*(t**p),0));
+  return {params:coef, yhat, r2:r2(y,yhat)};
+}
+function expfit(xi, y){
+  const pairs = xi.map((t,i)=>[t,y[i]]).filter(p=>p[1]>0 && Number.isFinite(p[1]));
+  if (pairs.length < 8) return null;
+  const x = pairs.map(p=>p[0]);
+  const ly = pairs.map(p=>Math.log(p[1]));
+  const lf = linfit(x, ly);
+  const a = Math.exp(lf.params[0]);
+  const b = lf.params[1];
+  const yhat = xi.map(t=>a*Math.exp(b*t));
+  return {params:[a,b], yhat, r2:r2(y,yhat)};
+}
+// logística simples (grid em x0, regressão em logit)
+function logisticFit(xi, y){
+  const yMax = Math.max(...y);
+  const L = yMax;
+  if (!Number.isFinite(L) || L<=0) return null;
+
+  let best=null;
+  const xMin = Math.min(...xi), xMax = Math.max(...xi);
+
+  for (let step=0; step<14; step++){
+    const x0 = xMin + (xMax-xMin)*(step/13);
+    const tr = [];
+    for (let i=0;i<xi.length;i++){
+      const yy = y[i];
+      if (yy<=0 || yy>=L) continue;
+      const v = Math.log((L/yy) - 1);
+      if (Number.isFinite(v)) tr.push([xi[i]-x0, v]);
+    }
+    if (tr.length < 14) continue;
+    const x = tr.map(p=>p[0]);
+    const v = tr.map(p=>p[1]);
+    const lf = linfit(x, v);
+    const k = -lf.params[1];
+    const yhat = xi.map(t=> L/(1+Math.exp(-k*(t-x0))) );
+    const rr = r2(y, yhat);
+    if (!best || (Number.isFinite(rr) && rr>best.r2)) best={params:[L,k,x0], yhat, r2:rr};
+  }
+  return best;
+}
+function fitModel(xi, y, model){
+  if (model==="linear") return linfit(xi,y);
+  if (model==="poly2") return polyfit(xi,y,2);
+  if (model==="poly3") return polyfit(xi,y,3);
+  if (model==="exp") return expfit(xi,y);
+  if (model==="logistic") return logisticFit(xi,y);
+  return null;
+}
+
+// ---------- aggregations ----------
+function keyFor(dt, scale){
+  if (scale==="monthly") return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");
+  if (scale==="annual") return String(dt.getFullYear());
+  return dt.toISOString().slice(0,10);
+}
+function dateForKey(key, scale){
+  if (scale==="monthly") return new Date(key+"-15T00:00:00");
+  if (scale==="annual") return new Date(key+"-07-01T00:00:00");
+  return new Date(key+"T00:00:00");
+}
+function groupByPeriod(data, scale, agg){
+  const map = new Map();
+  for (const d of data){
+    const key = keyFor(d.date, scale);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(d.y);
+  }
+  const keys = Array.from(map.keys()).sort();
+  const x = [], y = [], lo = [], hi = [], minv=[], maxv=[];
+  for (const key of keys){
+    const vals = (map.get(key)||[]).filter(v=>Number.isFinite(v));
+    if (!vals.length) continue;
+
+    let v;
+    if (agg==="mean") v = vals.reduce((a,b)=>a+b,0)/vals.length;
+    else if (agg==="median") v = quantile(vals, 0.5);
+    else if (agg==="min") v = Math.min(...vals);
+    else if (agg==="max") v = Math.max(...vals);
+
+    x.push(dateForKey(key, scale));
+    y.push(v);
+    minv.push(Math.min(...vals));
+    maxv.push(Math.max(...vals));
+    lo.push(quantile(vals, 0.025));
+    hi.push(quantile(vals, 0.975));
+  }
+  return {x,y,lo,hi,minv,maxv};
+}
+
+function updateMeta(minD, maxD, total){
+  document.getElementById("meta").innerHTML =
+    "<div class='pill'>Estações: <b>"+selectedStations().join(", ")+"</b></div>"+
+    "<div class='pill'>Período: <b>"+minD+"</b> → <b>"+maxD+"</b></div>"+
+    "<div class='pill'>Registros (somados): <b>"+total+"</b></div>";
+  document.getElementById("footRange").textContent = "Recorte atual: "+minD+" → "+maxD+".";
+}
+
+// ---------- side panels ----------
+function buildRecordsAndSeason(filteredByStation){
+  const recBody = document.getElementById("records");
+  const seaBody = document.getElementById("season");
+  recBody.innerHTML="";
+  seaBody.innerHTML="";
+
+  for (const [st, arr] of Object.entries(filteredByStation)){
+    if (!arr.length) continue;
+
+    let dmin=arr[0], dmax=arr[0];
+    for (const d of arr){
+      if (d.y < dmin.y) dmin=d;
+      if (d.y > dmax.y) dmax=d;
+    }
+    const tr=document.createElement("tr");
+    tr.innerHTML =
+      "<td><b>"+st+"</b></td>"+
+      "<td>"+dmin.date.toISOString().slice(0,10)+" · <b>"+dmin.y.toFixed(2)+" m</b></td>"+
+      "<td>"+dmax.date.toISOString().slice(0,10)+" · <b>"+dmax.y.toFixed(2)+" m</b></td>";
+    recBody.appendChild(tr);
+
+    // sazonalidade por mês (média mensal dentro do recorte)
+    const mMap = new Map();
+    for (const d of arr){
+      const m = d.date.getMonth();
+      if (!mMap.has(m)) mMap.set(m, []);
+      mMap.get(m).push(d.y);
+    }
+    const means=[];
+    for (let m=0;m<12;m++){
+      const vals = mMap.get(m) || [];
+      if (vals.length) means.push([m, vals.reduce((a,b)=>a+b,0)/vals.length]);
+    }
+    if (means.length){
+      means.sort((a,b)=>a[1]-b[1]);
+      const low=means[0], high=means[means.length-1];
+      const tr2=document.createElement("tr");
+      tr2.innerHTML =
+        "<td><b>"+st+"</b></td>"+
+        "<td>"+MONTHS[low[0]]+" · <b>"+low[1].toFixed(2)+" m</b></td>"+
+        "<td>"+MONTHS[high[0]]+" · <b>"+high[1].toFixed(2)+" m</b></td>";
+      seaBody.appendChild(tr2);
+    }
+  }
+}
+function buildRare(filteredByStation){
+  const tbody=document.getElementById("rare");
+  tbody.innerHTML="";
+  for (const [st, arr] of Object.entries(filteredByStation)){
+    if (!arr.length) continue;
+    const ys = arr.map(d=>d.y).filter(Number.isFinite);
+    const p1 = quantile(ys, 0.01);
+    const p99 = quantile(ys, 0.99);
+    const rare = arr
+      .filter(d=>d.y<=p1 || d.y>=p99)
+      .sort((a,b)=>a.date-b.date)
+      .slice(0, 250);
+
+    for (const r of rare){
+      const typ = r.y<=p1 ? "<span class='badge'>Muito baixo</span>" : "<span class='badge'>Muito alto</span>";
+      const tr=document.createElement("tr");
+      tr.innerHTML =
+        "<td><b>"+st+"</b></td>"+
+        "<td>"+r.date.toISOString().slice(0,10)+"</td>"+
+        "<td>"+r.y.toFixed(2)+"</td>"+
+        "<td>"+typ+"</td>";
+      tbody.appendChild(tr);
+    }
+  }
+}
+
+// ---------- plot ----------
+function buildPlot(){
+  const stSel = selectedStations();
+  if (!stSel.length){ alert("Selecione pelo menos 1 estação."); return; }
+
+  const start = new Date(document.getElementById("start").value);
+  const end = new Date(document.getElementById("end").value);
+  const scale = document.getElementById("scale").value;
+  const agg = document.getElementById("agg").value;
+  const band = document.getElementById("band").value;
+  const model = document.getElementById("model").value;
+  const horizonDays = parseInt(document.getElementById("horizon").value,10);
+
+  // filtra por estação
+  const filteredByStation = {};
+  let total=0;
+  let globalMin=null, globalMax=null;
+
+  for (const st of stSel){
+    const arr = rawAll.filter(d=>d.station===st && d.date>=start && d.date<=end);
+    filteredByStation[st]=arr;
+    total += arr.length;
+    if (arr.length){
+      const minD = arr[0].date;
+      const maxD = arr[arr.length-1].date;
+      if (!globalMin || minD<globalMin) globalMin=minD;
+      if (!globalMax || maxD>globalMax) globalMax=maxD;
+    }
+  }
+
+  const minStr = globalMin ? globalMin.toISOString().slice(0,10) : "—";
+  const maxStr = globalMax ? globalMax.toISOString().slice(0,10) : "—";
+  updateMeta(minStr, maxStr, total);
+
+  buildRecordsAndSeason(filteredByStation);
+  buildRare(filteredByStation);
+
+  const traces=[];
+  const r2Lines=[];
+
+  for (const st of stSel){
+    const arr = filteredByStation[st];
+    if (!arr.length) continue;
+
+    const grouped = groupByPeriod(arr, scale, agg);
+
+    // faixa
+    if (band !== "none"){
+      let upper, lower;
+      if (band === "minmax"){
+        lower = grouped.minv;
+        upper = grouped.maxv;
+      } else if (band === "p90"){
+        // calcula p5/p95 por grupo
+        const map = new Map();
+        for (const d of arr){
+          const key = keyFor(d.date, scale);
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(d.y);
+        }
+        const keys = Array.from(map.keys()).sort();
+        lower=[]; upper=[];
+        for (const key of keys){
+          const vals=(map.get(key)||[]).filter(Number.isFinite);
+          if (!vals.length) continue;
+          lower.push(quantile(vals, 0.05));
+          upper.push(quantile(vals, 0.95));
+        }
+      } else if (band === "p80"){
+        const map = new Map();
+        for (const d of arr){
+          const key = keyFor(d.date, scale);
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(d.y);
+        }
+        const keys = Array.from(map.keys()).sort();
+        lower=[]; upper=[];
+        for (const key of keys){
+          const vals=(map.get(key)||[]).filter(Number.isFinite);
+          if (!vals.length) continue;
+          lower.push(quantile(vals, 0.10));
+          upper.push(quantile(vals, 0.90));
+        }
+      } else {
+        // p95 padrão (p2.5/p97.5)
+        lower = grouped.lo;
+        upper = grouped.hi;
+      }
+
+      // desenho faixa (primeiro upper invisível, depois lower com fill)
+      traces.push({x: grouped.x, y: upper, type:"scatter", mode:"lines", line:{width:0}, hoverinfo:"skip", showlegend:false});
+      traces.push({
+        x: grouped.x, y: lower, type:"scatter", mode:"lines",
+        fill:"tonexty", line:{width:0}, hoverinfo:"skip",
+        name: st+" · Faixa",
+        fillcolor: (COLORS[st]?.band || "rgba(110,190,255,.22)")
+      });
+    }
+
+    // série
+    traces.push({
+      x: grouped.x, y: grouped.y, type:"scatter", mode:"lines",
+      name: st,
+      line:{width:3, color:(COLORS[st]?.line || "rgba(110,190,255,.95)")}
+    });
+
+    // tendência + projeção
+    if (model!=="none" && grouped.y.length>=10){
+      const xi = grouped.x.map((_,i)=>i); // índice do tempo
+      const fit = fitModel(xi, grouped.y, model);
+      if (fit){
+        traces.push({
+          x: grouped.x, y: fit.yhat, type:"scatter", mode:"lines",
+          name: st+" · Tendência",
+          line:{dash:"dot", width:2, color:(COLORS[st]?.line || "rgba(110,190,255,.95)")}
+        });
+        if (Number.isFinite(fit.r2)) r2Lines.push(st+": R²="+fit.r2.toFixed(3));
+
+        // PROJEÇÃO: garante que 30 dias sempre apareça (inclusive em escala diária)
+        if (horizonDays>0){
+          // passo depende da escala exibida
+          let stepDays = 1;
+          if (scale==="monthly") stepDays = 30;
+          if (scale==="annual") stepDays = 365;
+
+          const nSteps = Math.max(1, Math.ceil(horizonDays / stepDays)); // <- isso corrige o “30 dias não aparece”
+          const lastX = grouped.x[grouped.x.length-1];
+
+          const projX = [];
+          for (let j=1;j<=nSteps;j++){
+            const nd = new Date(lastX.getTime());
+            nd.setDate(nd.getDate() + j*stepDays);
+            projX.push(nd);
+          }
+
+          const startIdx = grouped.x.length-1;
+          const xi2 = [];
+          for (let j=1;j<=nSteps;j++) xi2.push(startIdx + j);
+
+          let yhat2=[];
+          if (model==="linear"){
+            const a=fit.params[0], b=fit.params[1];
+            yhat2 = xi2.map(t=>a+b*t);
+          } else if (model==="poly2" || model==="poly3"){
+            const coef=fit.params;
+            yhat2 = xi2.map(t=>coef.reduce((acc,c,p)=>acc+c*(t**p),0));
+          } else if (model==="exp"){
+            const a=fit.params[0], b=fit.params[1];
+            yhat2 = xi2.map(t=>a*Math.exp(b*t));
+          } else if (model==="logistic"){
+            const L=fit.params[0], k=fit.params[1], x0=fit.params[2];
+            yhat2 = xi2.map(t=>L/(1+Math.exp(-k*(t-x0))));
+          }
+
+          traces.push({
+            x: projX, y: yhat2, type:"scatter", mode:"lines",
+            name: st+" · Projeção",
+            line:{dash:"dash", width:2, color:(COLORS[st]?.line || "rgba(110,190,255,.95)")}
+          });
+        }
+      }
+    }
+  }
+
+  document.getElementById("r2box").innerHTML = r2Lines.length ? ("<b>R² por estação:</b> "+r2Lines.join(" · ")) : "";
+
+  const layout = {
+    paper_bgcolor:"rgba(0,0,0,0)",
+    plot_bgcolor:"rgba(0,0,0,0)",
+    margin:{l:70,r:20,t:10,b:55},
+    xaxis:{title:"Tempo", gridcolor:"rgba(255,255,255,.06)"},
+    yaxis:{title:"Cota (m)", gridcolor:"rgba(255,255,255,.06)", zeroline:false},
+    legend:{orientation:"h", yanchor:"bottom", y:1.02, xanchor:"left", x:0},
+    hovermode:"x unified"
+  };
+
+  Plotly.newPlot("plot", traces, layout, {responsive:true, displaylogo:false});
+}
+
+// ---------- downloads ----------
+function downloadCSV(){
+  const stSel = selectedStations();
+  const start = new Date(document.getElementById("start").value);
+  const end = new Date(document.getElementById("end").value);
+
+  const rows = rawAll
+    .filter(d=>stSel.includes(d.station) && d.date>=start && d.date<=end)
+    .map(d=>({station:d.station, date:d.date.toISOString().slice(0,10), cota_m:d.y}));
+
+  let csv="station,date,cota_m\n";
+  csv += rows.map(r=>r.station+","+r.date+","+r.cota_m.toFixed(3)).join("\n");
+
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "rio_paraguai_recorte_multiestacoes.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ---------- load ----------
+async function load(){
+  const res = await fetch(CSV_URL, {cache:"no-store"});
+  if (!res.ok) throw new Error("Não consegui carregar o CSV: "+CSV_URL+" (status "+res.status+")");
+  const text = await res.text();
+
+  const parsed = Papa.parse(text, {header:true, dynamicTyping:true, skipEmptyLines:true});
+  const data = parsed.data || [];
+
+  // limpeza forte (remove 18.28 e valores absurdos)
+  rawAll = data
+    .filter(r => r.station && r.date_str && Number.isFinite(r.cota_m))
+    .map(r => ({
+      station: String(r.station).trim(),
+      date: new Date(String(r.date_str).trim()+"T00:00:00"),
+      y: Number(r.cota_m)
+    }))
+    .filter(d => d.date instanceof Date && !isNaN(d.date))
+    .filter(d => d.y !== 18.28)     // remove o outlier citado
+    .filter(d => d.y > -5 && d.y <= 12) // faixa plausível (ajuste se necessário)
+    .sort((a,b)=>a.date-b.date);
+
+  if (!rawAll.length) throw new Error("CSV carregou, mas não encontrei dados válidos.");
+
+  const minD = rawAll[0].date.toISOString().slice(0,10);
+  const maxD = rawAll[rawAll.length-1].date.toISOString().slice(0,10);
+
+  document.getElementById("start").value = minD;
+  document.getElementById("end").value = maxD;
+
+  buildPlot();
+}
+
+document.getElementById("apply").addEventListener("click", buildPlot);
+document.getElementById("reset").addEventListener("click", ()=>{
+  document.getElementById("scale").value="daily";
+  document.getElementById("agg").value="mean";
+  document.getElementById("band").value="p95";
+  document.getElementById("model").value="none";
+  document.getElementById("horizon").value="0";
+  const minD = rawAll[0].date.toISOString().slice(0,10);
+  const maxD = rawAll[rawAll.length-1].date.toISOString().slice(0,10);
+  document.getElementById("start").value=minD;
+  document.getElementById("end").value=maxD;
+  buildPlot();
+});
+
+document.getElementById("png").addEventListener("click", ()=>Plotly.downloadImage("plot", {format:"png", filename:"rio_paraguai_cotas"}));
+document.getElementById("csv").addEventListener("click", downloadCSV);
+
+document.getElementById("st_caceres").addEventListener("change", buildPlot);
+document.getElementById("st_ladario").addEventListener("change", buildPlot);
+document.getElementById("st_pm").addEventListener("change", buildPlot);
+
+load().catch(err=>{
+  console.error(err);
+  document.getElementById("meta").innerHTML =
+    "<div class='pill'><b>Erro:</b> "+String(err.message||err)+"</div>"+
+    "<div class='pill'>Confirme se o arquivo <b>rio_paraguai_estacoes_cota_diaria.csv</b> está na raiz do repo.</div>";
+});
+</script>
+
+</body>
+</html>
