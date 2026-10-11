@@ -1,5 +1,5 @@
 import {DAY,epoch,mean,describe,fit,aggregate,annualTrend,parseCSV} from './math.js';
-import {contextBlock,contextDetails,sourceHealth,validMarinhaFeed} from './context-core.js';
+import {contextBlock,contextDetails,sourceHealth,sourceAuditPanel,validMarinhaFeed} from './context-core.js?v=2.4';
 const $=id=>document.getElementById(id), $$=s=>[...document.querySelectorAll(s)], N=['Cáceres','Ladário','Porto Murtinho'], colors=['#2781bd','#087c7d','#bd7830'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=(n,d=2)=>n==null||!Number.isFinite(n)?'—':n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -8,6 +8,7 @@ const clock=d=>d?new Date(d).toLocaleString('pt-BR',{timeZone:'America/Campo_Gra
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Campo_Grande',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const age=d=>Math.round((epoch(today())-epoch(d))/DAY), months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 let stats=null,historical=[],daily=[],latest={},telemetry={stations:{}},sgb=[],active='agora',liveFallback=false,archiveUnavailable=false,historySelection=null,trendSelection=null,overview=null;
+let sourceAudit=null;
 const station=()=>$('station').value;
 const kpis=(id,items)=>$(id).innerHTML=items.map(([label,value,note])=>`<div class="kpi"><span>${esc(label)}</span><b>${esc(value)}</b><small>${esc(note)}</small></div>`).join('');
 function table(headers,rows){return `<table><thead><tr>${headers.map(h=>`<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;}
@@ -28,7 +29,7 @@ function chart(id,series,{title='',type='date',band=null,gap=Infinity,yLabel='Co
  const ticks=type==='month'?[1,3,5,7,9,12]:Array.from({length:W<450?4:6},(_,i)=>xmin+(xmax-xmin)*i/(W<450?3:5));
  for(const v of ticks)svg+=`<text x="${X(v)}" y="${H-12}" text-anchor="middle" fill="#62788b" font-size="11" font-family="sans-serif">${esc(xt(v))}</text>`;
  if(band?.length){const groups=[];for(const p of band){if(!groups.length||p.x-groups[groups.length-1][groups[groups.length-1].length-1].x>gap)groups.push([]);groups[groups.length-1].push(p);}for(const band of groups)svg+=`<path d="${band.map((p,i)=>`${i?'L':'M'}${X(p.x)},${Y(p.hi)}`).join('')} ${[...band].reverse().map(p=>`L${X(p.x)},${Y(p.lo)}`).join('')}Z" fill="#dcedf5"/>`;}
- series.forEach((s,j)=>{let prev=null,d='';for(const p of s.points){if(!Number.isFinite(p.y)){prev=null;continue;}d+=`${!prev||p.x-prev.x>(s.gap??gap)?'M':'L'}${X(p.x).toFixed(2)},${Y(p.y).toFixed(2)} `;prev=p;}svg+=`<path d="${d}" fill="none" stroke="${s.color||colors[j%3]}" stroke-width="${s.dash?2:2.3}" ${s.dash?'stroke-dasharray="7 5"':''} stroke-linejoin="round"/>`;if(s.points.length<150&&!s.dash)for(const p of s.points.filter(p=>Number.isFinite(p.y)))svg+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${s.points.length===1?5:2.7}" fill="${s.color||colors[j%3]}"><title>${esc(p.label||xt(p.x))}: ${num(p.y)} m</title></circle>`;});
+ series.forEach((s,j)=>{let prev=null,d='';for(const p of s.points){if(!Number.isFinite(p.y)){prev=null;continue;}d+=`${!prev||p.x-prev.x>(s.gap??gap)?'M':'L'}${X(p.x).toFixed(2)},${Y(p.y).toFixed(2)} `;prev=p;}svg+=`<path d="${d}" fill="none" stroke="${s.color||colors[j%3]}" stroke-width="${s.dash?2:2.3}" ${s.dash?'stroke-dasharray="7 5"':''} stroke-linejoin="round"/>`;if((s.points.length<150||s.gap===0)&&!s.dash)for(const p of s.points.filter(p=>Number.isFinite(p.y)))svg+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${s.points.length===1?5:2.7}" fill="${s.color||colors[j%3]}"><title>${esc(p.label||xt(p.x))}: ${num(p.y)} m</title></circle>`;});
  svg+=`<line class="cursor" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="#8ba6b9" stroke-dasharray="3 3" visibility="hidden"/></svg>`;
  host.innerHTML=svg+`<div class="legend">${series.map((s,i)=>`<span><i style="background:${s.color||colors[i%3]}"></i>${esc(s.label)}</span>`).join('')}${band?`<span><i style="background:#dcedf5;height:9px"></i>${esc(bandLabel)}</span>`:''}</div><div class="chart-tooltip" aria-live="polite">Toque ou passe o cursor para ver os valores. Teclado: ← →</div>`;
  const el=host.querySelector('svg'),tip=host.querySelector('.chart-tooltip'),cursor=host.querySelector('.cursor');let idx=0;
@@ -40,12 +41,13 @@ function chart(id,series,{title='',type='date',band=null,gap=Infinity,yLabel='Co
 function showTab(name,scroll=false){if(!['agora','historico','tendencias','vida','metodo'].includes(name))name='agora';active=name;$$('.view').forEach(el=>el.hidden=el.id!==name);$$('[data-tab]').forEach(b=>b.dataset.tab===name?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));history.replaceState(null,'','#'+name);renderVisible();if(scroll)window.scrollTo({top:0,behavior:'instant'});}
 function delta(r){if(r?.variation_m==null)return 'Variação não informada';return `${r.variation_m>0?'↑':r.variation_m<0?'↓':'→'} ${r.variation_m>0?'Subiu':r.variation_m<0?'Baixou':'Estável'}${r.variation_m!==0?' '+num(Math.abs(r.variation_m)*100,0)+' cm':''} · variação publicada`;}
 function renderNow(){
- $('station-cards').innerHTML=N.map((s,i)=>{const r=latest.stations?.find(r=>r.station===s),days=r?age(r.date):null;return `<button class="card station-card ${station()===s?'selected':''}" data-station="${esc(s)}" aria-pressed="${station()===s}"><div class="station-head"><h3>${esc(s)}</h3><span class="badge ${days===0?'good':'warn'}">${days===0?'Leitura de hoje':days===1?'Leitura de ontem':days!=null?days+' dias atrás':'Aguardando'}</span></div><div class="level">${num(r?.level_m)} <small>m</small></div><div class="delta">${delta(r)}</div><div class="station-date">${i===0?'MATO GROSSO':'MATO GROSSO DO SUL'} · ${r?date(r.date):'Sem leitura disponível'}</div>${overview?contextBlock(r,overview.stations[s],daily):''}</button>`;}).join('');
+ $('station-cards').innerHTML=N.map((s,i)=>{const r=latest.stations?.find(r=>r.station===s),days=r?age(r.date):null;return `<button class="card station-card ${station()===s?'selected':''}" data-station="${esc(s)}" aria-pressed="${station()===s}"><div class="station-head"><h3>${esc(s)}</h3><span class="badge ${days===0?'good':'warn'}">${days===0?'Leitura de hoje':days===1?'Leitura de ontem':days!=null?days+' dias atrás':'Aguardando'}</span></div><div class="level">${num(r?.level_m)} <small>m</small></div><div class="delta">${delta(r)}</div><div class="station-date">${i===0?'MATO GROSSO':'MATO GROSSO DO SUL'} · ${r?date(r.date):'Sem leitura disponível'}</div>${overview?contextBlock(r,overview.stations[s],daily,telemetry):''}</button>`;}).join('');
  $$('[data-station]').forEach(b=>b.onclick=()=>{$('station').value=b.dataset.station;renderNow();});
  const r=latest.stations?.find(r=>r.station===station()),directFailed=latest.fetch_status==='error',old=r&&age(r.date)>1;
  const note=liveFallback?'Não foi possível consultar o feed remoto. Exibindo a última cópia local. ':'';
- if(overview)$('context-detail').innerHTML=contextDetails(r,overview.stations[station()],daily);
+ if(overview)$('context-detail').innerHTML=contextDetails(r,overview.stations[station()],daily,telemetry);
  $('source-health').innerHTML=sourceHealth(latest,telemetry);
+ $('source-audit').innerHTML=sourceAuditPanel(latest,telemetry,sourceAudit);
  $('freshness').className='notice'+(liveFallback||old||directFailed?' warning':'');
  $('freshness').textContent=note+(r?`Última observação de ${station()}: ${date(r.date)}. `:'Aguardando uma observação validada. ')+(directFailed?'A consulta direta mais recente falhou; o último dado foi preservado. ':'')+`Última leitura verificada da fonte: ${clock(latest.last_success_at)}. Hora da medição: não informada pela Marinha.`;
  $('connection').textContent=liveFallback?'Cópia local':r?(age(r.date)===0?'Leitura de hoje':'Ver data da leitura'):'Sem leitura';$('connection').className='badge '+(!liveFallback&&r&&age(r.date)===0?'good':'warn');
@@ -56,6 +58,8 @@ function renderNow(){
  if(rows.length<2)empty('recent-chart',rows.length?'Uma leitura não descreve uma evolução':'Sem sequência disponível nesta janela',rows.length?`${date(rows[0].date)} · ${num(rows[0].level_m)} m. Amplie a janela para ver os registros do ano.`:last?`Último registro ANA: ${date(last.date)}. Selecione o ano completo.`:'Aguardando registros validados.');
  else{
   const lines=[{label:useANA?'ANA · média dos registros do dia':station(),points:rows.map(r=>({x:epoch(r.date),y:r.level_m,label:date(r.date),note:useANA?r.n+' registros'+(r.partial_day?'; dia parcial':''):''}))}];
+  const marine=useANA?daily.filter(d=>d.station===station()&&(limit==='all'||(epoch(today())-epoch(d.date))/DAY<Number(limit))):[];
+  if(marine.length)lines.push({label:'Marinha · leitura publicada',color:'#bd5d36',gap:0,points:marine.map(d=>({x:epoch(d.date),y:d.level_m,label:date(d.date),note:'Hora não informada'}))});
   const extra=useANA?sgb.filter(r=>r.station===station()&&(limit==='all'||(epoch(today())-epoch(r.date))/DAY<Number(limit))):[];
   if(extra.length)lines.push({label:'SGB · leitura às 7h',color:colors[2],gap:0,points:extra.map(r=>({x:epoch(r.date),y:r.level_m,label:date(r.date)}))});
   chart('recent-chart',lines,{title:$('recent-title').textContent,gap:DAY*1.5,band:useANA?rows.map(r=>({x:epoch(r.date),lo:r.min,hi:r.max})):null,bandLabel:'Mín.–máx. intradiárias'});
@@ -117,5 +121,6 @@ $('export-annual').onclick=()=>{if(!stats)return;renderTrend();if(!trendSelectio
 $$('[data-svg]').forEach(b=>b.onclick=()=>{const svg=$(b.dataset.svg).querySelector('svg');if(svg)download('cota-'+slug()+'-'+b.dataset.svg+'.svg',new XMLSerializer().serializeToString(svg),'image/svg+xml');});
 let timer;window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(renderVisible,180);});window.addEventListener('hashchange',()=>showTab(location.hash.slice(1)));
 async function init(){for(const id of ['year-a','year-b'])$(id).innerHTML=Array.from({length:60},(_,i)=>2025-i).map(y=>`<option>${y}</option>`).join('');$('year-a').value='2024';$('year-b').value='2025';
- const live=loadLive();try{const [s,h,o]=await Promise.all([get('./data/statistics.json').then(r=>r.json()),get('./data/history-ana.csv').then(r=>r.text()),get('./data/overview.json').then(r=>r.json())]);stats=s;overview=o;historical=parseCSV(h);showTab(location.hash.slice(1)||'agora');}catch(e){$('error').textContent='Não foi possível carregar o histórico. Verifique a conexão e recarregue a página. Detalhe: '+e.message;$('error').hidden=false;}await live;renderVisible();}
+ const auditLoad=get('./data/source-audit.json').then(r=>r.json()).then(v=>{sourceAudit=v;}).catch(()=>{});
+ const live=loadLive();try{const [s,h,o]=await Promise.all([get('./data/statistics.json').then(r=>r.json()),get('./data/history-ana.csv').then(r=>r.text()),get('./data/overview.json').then(r=>r.json())]);stats=s;overview=o;historical=parseCSV(h);showTab(location.hash.slice(1)||'agora');}catch(e){$('error').textContent='Não foi possível carregar o histórico. Verifique a conexão e recarregue a página. Detalhe: '+e.message;$('error').hidden=false;}await Promise.all([live,auditLoad]);renderVisible();}
 init();setInterval(()=>{if(!document.hidden)loadLive().catch(()=>{});},15*60*1000);

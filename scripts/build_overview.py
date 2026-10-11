@@ -22,6 +22,7 @@ def build():
         for r in csv.DictReader(f):
             if r['cota_m'].strip():rows[r['station']].append(r)
     historical=json.loads((ROOT/'data/statistics.json').read_text())
+    marine=json.loads((ROOT/'data/history-marinha.json').read_text())
     result={'schema_version':2,'period':[1966,2025],'stations':{}}
     for name,rr in rows.items():
         a=historical['stations'][name]
@@ -30,6 +31,8 @@ def build():
         for r in rr:same_day.setdefault(r['date_str'][5:],[]).append(round(float(r['cota_m']),6))
         by_date={r['date_str']:round(float(r['cota_m']),6) for r in rr if r['date_str'][:4]=='2025'}
         result['stations'][name]={'distribution':counts,'calendar_values':same_day,'by_date':by_date,'profile':profile(rr),'annual':[[x['year'],x['min'],x['max'],x['mean'],x['sd'],x['n'],x['coverage']] for x in a['annual']], 'n':a['n'],'min':a['min'],'max':a['max'],'mean':a['mean'],'sd':a['sd'],'start':a['start'],'end':a['end']}
+        source=next(s for s in marine['sources'] if s['station']==name)
+        result['stations'][name]['marinha']={**source,'by_date':{r['date']:r['level_m'] for r in marine['observations'] if r['station']==name}}
     def round_values(obj):
         if isinstance(obj,float):return round(obj,6)
         if isinstance(obj,list):return [round_values(v) for v in obj]

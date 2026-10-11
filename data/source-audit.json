@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "scope": "Datas coincidentes nas tabelas recuperadas de 2025. Não representa toda a série histórica.",
+  "difference_definition": "Marinha menos média diária publicada ANA, em centímetros.",
+  "interpretation": "Diferenças numéricas não certificam equivalência de horário, ponto ou zero de régua. Não foi aplicada correção de nível nem fusão estatística.",
+  "sources": [
+    {
+      "station": "Cáceres",
+      "source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/01-C%C3%81CERES.06_6.pdf",
+      "pdf_page": 2,
+      "coverage_start": "2025-01-01",
+      "coverage_end": "2025-12-31",
+      "captured_at": "2026-10-11T15:04:48.881Z",
+      "retrieval_method": "public_web_pdf_text",
+      "verification_note": "Transcrição textual da tabela oficial aberta na ferramenta web. Download binário e renderização indisponíveis (HTTP 502); não é uma cópia binária do PDF. Só a tabela de 2025 é importada; contagem de células e extremos são verificados.",
+      "snapshot_path": "data/snapshots/marinha-caceres-2025-web.json",
+      "snapshot_sha256": "765b293220e3db411cb84b0354498adc78773f1a808bcd20171dc4462e979c5d",
+      "days": 365
+    },
+    {
+      "station": "Ladário",
+      "source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/04%20-%20LAD%C3%81RIO.02_1.pdf",
+      "pdf_page": 2,
+      "coverage_start": "2025-01-01",
+      "coverage_end": "2025-12-31",
+      "captured_at": "2026-10-11T15:04:49.511Z",
+      "retrieval_method": "public_web_pdf_text",
+      "verification_note": "Transcrição textual da tabela oficial aberta na ferramenta web. Download binário e renderização indisponíveis (HTTP 502); não é uma cópia binária do PDF. Só a tabela de 2025 é importada; contagem de células e extremos são verificados.",
+      "snapshot_path": "data/snapshots/marinha-ladario-2025-web.json",
+      "snapshot_sha256": "720608889f8ef2de8ae54a38e68a39f4cb2a4866072d86a40c4a64a3bff1c4ef",
+      "days": 365
+    },
+    {
+      "station": "Porto Murtinho",
+      "source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/05-PORTO%20MURTINHO.14_1.pdf",
+      "pdf_page": 1,
+      "coverage_start": "2025-01-01",
+      "coverage_end": "2025-10-14",
+      "captured_at": "2026-10-11T15:04:50.142Z",
+      "retrieval_method": "public_web_pdf_text",
+      "verification_note": "Transcrição textual da tabela oficial aberta na ferramenta web. Download binário e renderização indisponíveis (HTTP 502); não é uma cópia binária do PDF. Só a tabela de 2025 é importada; contagem de células e extremos são verificados.",
+      "snapshot_path": "data/snapshots/marinha-porto-murtinho-2025-web.json",
+      "snapshot_sha256": "1a8b8035bf51fd4e66c3fbb0ffd08cdac7cdf4740bb5bac979e8536be3008862",
+      "days": 287
+    }
+  ],
+  "stations": {
+    "Cáceres": {
+      "n": 364,
+      "marinha_days": 365,
+      "ana_missing": 1,
+      "start": "2025-01-01",
+      "end": "2025-12-31",
+      "equal": 21,
+      "within_1cm": 109,
+      "mean_difference_cm": 1.778846,
+      "mean_absolute_difference_cm": 3.776099,
+      "max_absolute_difference_cm": 17.0,
+      "largest_differences": [
+        {
+          "station": "Cáceres",
+          "date": "2025-03-13",
+          "marinha_m": 4.46,
+          "ana_daily_mean_m": 4.29,
+          "ana_07h_m": 4.28,
+          "ana_17h_m": 4.3,
+          "difference_cm": 17.0,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/01-C%C3%81CERES.06_6.pdf"
+        },
+        {
+          "station": "Cáceres",
+          "date": "2025-04-05",
+          "marinha_m": 3.98,
+          "ana_daily_mean_m": 3.855,
+          "ana_07h_m": 3.86,
+          "ana_17h_m": 3.85,
+          "difference_cm": 12.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/01-C%C3%81CERES.06_6.pdf"
+        },
+        {
+          "station": "Cáceres",
+          "date": "2025-06-26",
+          "marinha_m": 1.82,
+          "ana_daily_mean_m": 1.945,
+          "ana_07h_m": 1.92,
+          "ana_17h_m": 1.97,
+          "difference_cm": -12.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/01-C%C3%81CERES.06_6.pdf"
+        },
+        {
+          "station": "Cáceres",
+          "date": "2025-01-25",
+          "marinha_m": 4.46,
+          "ana_daily_mean_m": 4.345,
+          "ana_07h_m": 4.35,
+          "ana_17h_m": 4.34,
+          "difference_cm": 11.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/01-C%C3%81CERES.06_6.pdf"
+        },
+        {
+          "station": "Cáceres",
+          "date": "2025-02-06",
+          "marinha_m": 4.5,
+          "ana_daily_mean_m": 4.39,
+          "ana_07h_m": 4.4,
+          "ana_17h_m": 4.38,
+          "difference_cm": 11.0,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/01-C%C3%81CERES.06_6.pdf"
+        }
+      ],
+      "ana_07h_pairs": 364,
+      "mean_absolute_difference_07h_cm": 3.282967
+    },
+    "Ladário": {
+      "n": 364,
+      "marinha_days": 365,
+      "ana_missing": 1,
+      "start": "2025-01-01",
+      "end": "2025-12-31",
+      "equal": 237,
+      "within_1cm": 338,
+      "mean_difference_cm": 0.107143,
+      "mean_absolute_difference_cm": 0.340659,
+      "max_absolute_difference_cm": 5.0,
+      "largest_differences": [
+        {
+          "station": "Ladário",
+          "date": "2025-06-21",
+          "marinha_m": 3.17,
+          "ana_daily_mean_m": 3.12,
+          "ana_07h_m": 3.12,
+          "ana_17h_m": 3.12,
+          "difference_cm": 5.0,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/04%20-%20LAD%C3%81RIO.02_1.pdf"
+        },
+        {
+          "station": "Ladário",
+          "date": "2025-09-10",
+          "marinha_m": 2.64,
+          "ana_daily_mean_m": 2.685,
+          "ana_07h_m": 2.69,
+          "ana_17h_m": 2.68,
+          "difference_cm": -4.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/04%20-%20LAD%C3%81RIO.02_1.pdf"
+        },
+        {
+          "station": "Ladário",
+          "date": "2025-09-09",
+          "marinha_m": 2.67,
+          "ana_daily_mean_m": 2.705,
+          "ana_07h_m": 2.71,
+          "ana_17h_m": 2.7,
+          "difference_cm": -3.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/04%20-%20LAD%C3%81RIO.02_1.pdf"
+        },
+        {
+          "station": "Ladário",
+          "date": "2025-10-11",
+          "marinha_m": 1.28,
+          "ana_daily_mean_m": 1.245,
+          "ana_07h_m": 1.27,
+          "ana_17h_m": 1.22,
+          "difference_cm": 3.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/04%20-%20LAD%C3%81RIO.02_1.pdf"
+        },
+        {
+          "station": "Ladário",
+          "date": "2025-09-08",
+          "marinha_m": 2.7,
+          "ana_daily_mean_m": 2.725,
+          "ana_07h_m": 2.73,
+          "ana_17h_m": 2.72,
+          "difference_cm": -2.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/04%20-%20LAD%C3%81RIO.02_1.pdf"
+        }
+      ],
+      "ana_07h_pairs": 364,
+      "mean_absolute_difference_07h_cm": 0.093407
+    },
+    "Porto Murtinho": {
+      "n": 286,
+      "marinha_days": 287,
+      "ana_missing": 1,
+      "start": "2025-01-01",
+      "end": "2025-10-14",
+      "equal": 116,
+      "within_1cm": 234,
+      "mean_difference_cm": 0.421329,
+      "mean_absolute_difference_cm": 0.987762,
+      "max_absolute_difference_cm": 18.5,
+      "largest_differences": [
+        {
+          "station": "Porto Murtinho",
+          "date": "2025-06-19",
+          "marinha_m": 4.73,
+          "ana_daily_mean_m": 4.545,
+          "ana_07h_m": 4.55,
+          "ana_17h_m": 4.54,
+          "difference_cm": 18.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/05-PORTO%20MURTINHO.14_1.pdf"
+        },
+        {
+          "station": "Porto Murtinho",
+          "date": "2025-06-20",
+          "marinha_m": 4.68,
+          "ana_daily_mean_m": 4.515,
+          "ana_07h_m": 4.52,
+          "ana_17h_m": 4.51,
+          "difference_cm": 16.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/05-PORTO%20MURTINHO.14_1.pdf"
+        },
+        {
+          "station": "Porto Murtinho",
+          "date": "2025-06-18",
+          "marinha_m": 4.69,
+          "ana_daily_mean_m": 4.565,
+          "ana_07h_m": 4.57,
+          "ana_17h_m": 4.56,
+          "difference_cm": 12.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/05-PORTO%20MURTINHO.14_1.pdf"
+        },
+        {
+          "station": "Porto Murtinho",
+          "date": "2025-06-17",
+          "marinha_m": 4.7,
+          "ana_daily_mean_m": 4.585,
+          "ana_07h_m": 4.59,
+          "ana_17h_m": 4.58,
+          "difference_cm": 11.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/05-PORTO%20MURTINHO.14_1.pdf"
+        },
+        {
+          "station": "Porto Murtinho",
+          "date": "2025-06-16",
+          "marinha_m": 4.71,
+          "ana_daily_mean_m": 4.605,
+          "ana_07h_m": 4.61,
+          "ana_17h_m": 4.6,
+          "difference_cm": 10.5,
+          "marinha_source_url": "https://www.marinha.mil.br/chn-6/sites/www.marinha.mil.br.chn-6/files/05-PORTO%20MURTINHO.14_1.pdf"
+        }
+      ],
+      "ana_07h_pairs": 286,
+      "mean_absolute_difference_07h_cm": 0.482517
+    }
+  }
+}

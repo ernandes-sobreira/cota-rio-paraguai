@@ -2,7 +2,8 @@
 const overview=JSON.parse(document.getElementById('overview-seed').textContent);
 let latest=JSON.parse(document.getElementById('latest-seed').textContent),telemetry=JSON.parse(document.getElementById('telemetry-seed').textContent),mode='year',busy=false;
 const stationRoot=document.getElementById('estacoes'),status=document.getElementById('connection-status'),refresh=document.getElementById('refresh'),visible=new Set(STATIONS);
-let graphCache={},overlayGraph=null,marinhaArchive=[];
+let graphCache={},overlayGraph=null,marinhaArchive=telemetry.marinhaArchive||[];
+const sourceAudit=JSON.parse(document.getElementById('source-audit-seed').textContent);
 function validFeed(feed){return validMarinhaFeed(feed);}
 function validTelemetry(feed){return feed&&feed.unit==='m'&&Number.isFinite(Date.parse(feed.fetched_at))&&STATIONS.every(name=>feed.stations&&feed.stations[name]&&Array.isArray(feed.stations[name].daily)&&feed.stations[name].daily.every(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday()&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max)&&r.min<=r.mean&&r.mean<=r.max&&r.n>0));}
 function rank(feed){return [Date.parse(feed.last_success_at)||0,Date.parse(feed.checked_at)||0];}
@@ -11,7 +12,9 @@ function canReplace(feed){return validFeed(feed)&&newer(feed,latest)&&STATIONS.e
 function current(name){return latest.stations.find(s=>s.station===name);}
 function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: losangos são leituras pontuais de boletins SGB, sem ligar os dias ausentes.';}
 function render(){
- document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive);
+ telemetry.marinhaArchive=marinhaArchive;
+ document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive,telemetry);
+ document.getElementById('source-audit').innerHTML=sourceAuditPanel(latest,telemetry,sourceAudit);
  document.getElementById('source-health').innerHTML=sourceHealth(latest,telemetry);
  const width=(stationRoot.querySelector('.plot')||{}).clientWidth||Math.min(850,Math.max(300,window.innerWidth-105));
  const open=Array.from(stationRoot.querySelectorAll('details[open]')).map(d=>d.closest('article').id);
@@ -24,7 +27,7 @@ function render(){
  document.getElementById('verified-at').textContent=timeBR(mode==='year'?telemetry.fetched_at:latest.last_success_at);
  document.querySelector('.update-label').innerHTML='<i></i> '+(mode==='year'?'Última consulta · ANA':'Última verificação · Marinha');
  document.getElementById('year-tab').textContent=telemetry.year;
- document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · registros ANA por dia; hoje é parcial. Losangos: leituras pontuais SGB.':mode==='history'?'Mínima, máxima, média e desvio-padrão das cotas diárias de cada ano · 1966–2025':'Distribuição de cada dia do calendário ao longo de 1966–2025';
+ document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · registros ANA por dia; hoje é parcial. Pontos laranja: Marinha; losangos: SGB.':mode==='history'?'Mínima, máxima, média e desvio-padrão das cotas diárias de cada ano · 1966–2025':'Distribuição de cada dia do calendário ao longo de 1966–2025';
  document.getElementById('year-coverage').textContent=coverageText();document.getElementById('year-coverage').hidden=mode!=='year';
  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
  document.querySelectorAll('.river-stops a').forEach((a,i)=>{const r=current(STATIONS[i]);a.querySelector('strong').textContent=format(r&&r.level_m)+' m';a.querySelector('small').textContent='Marinha · '+dateBR(r&&r.date).slice(0,5);});
@@ -34,7 +37,7 @@ function render(){
 function renderOverlay(){
  const host=document.getElementById('overlay-chart'),relative=document.getElementById('comparison-metric').value==='relative',series=comparisonSeries(overview,telemetry,mode,telemetry.year,Array.from(visible));
  overlayGraph=comparisonGraph(series,{mode,year:telemetry.year,width:host.clientWidth||Math.min(1040,Math.max(300,window.innerWidth-95)),relative});
- host.innerHTML=overlayGraph.svg;const readout=document.getElementById('overlay-readout');readout.textContent=mode==='year'?'Médias dos registros de cada dia · ANA · ◇ SGB às 7h':mode==='season'?'Médias do mesmo dia do calendário · 1966–2025':'Médias anuais · 1966–2025';
+ host.innerHTML=overlayGraph.svg;const readout=document.getElementById('overlay-readout');readout.textContent=mode==='year'?'Médias dos registros de cada dia · ANA · pontos laranja Marinha · ◇ SGB às 7h':mode==='season'?'Médias do mesmo dia do calendário · 1966–2025':'Médias anuais · 1966–2025';
  document.getElementById('overlay-note').textContent=relative?(overlayGraph.baseline?'Mudança em relação ao primeiro período comum: '+overlayGraph.baseline.label+'. Cada estação parte do seu próprio nível.':'Não há um período comum para esta comparação.'):'Cada régua tem seu próprio zero. Compare o comportamento das curvas; cotas não são altitudes.';
  const svg=host.querySelector('svg');if(svg)bindGraph(svg,overlayGraph,readout);document.getElementById('download-overlay').disabled=!svg;
 }

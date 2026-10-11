@@ -51,3 +51,14 @@ npm test
 `index.html` e `dashboard.js` são gerados. Edite `dashboard.template.html`, `dashboard-core.js`, `comparison-core.js`, `context-core.js`, `dashboard-client.js` e os CSS, depois rode o build. A página principal inclui gráficos e cartões antes de executar JavaScript; a data da cópia permanece identificada.
 
 Idealização: **Ernandes Sobreira**. Organização original: **Claumir Cesar Muniz, Derick Victor de Souza Campos e Wilkinson Kiwi Lopes Lázaro**. Fontes recuperadas nesta versão: ANA, Marinha e SGB.
+
+## V2.4 — conferência Marinha × ANA
+
+A seção de conferência mostra valores e diferenças na mesma data. Foram recuperados 1.017 registros das tabelas oficiais Marinha de 2025 e comparados 1.014 pares elegíveis com a ANA. A comparação anual prioriza Marinha × Marinha; o percentil usa ANA da mesma data × histórico ANA. Sem dado na data exata, não se calcula posição nem diferença entre fontes. Novas leituras Marinha entram como pontos identificados nas curvas; não alteram médias, dispersões ou tendências ANA.
+
+- [Auditoria e limitações](AUDITORIA.md)
+- [Pares de dados e leituras horárias ANA](data/source-audit.csv)
+- [Histórico Marinha recuperado](data/history-marinha.csv)
+- [Fontes e transcrições](data/source-audit.json)
+
+Reproduzir o acréscimo Marinha: `python scripts/recover_marinha.py`, depois `python scripts/build_source_audit.py` e `npm run build`. Os testes também reproduzem os registros importados a partir das transcrições e rejeitam células ambíguas.

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {previousCalendarDate,distributionPosition,readingContext,contextBlock,validMarinhaFeed,nextScheduled} from '../context-core.js';
+import {previousCalendarDate,distributionPosition,readingContext,contextBlock,validMarinhaFeed,nextScheduled,sourceComparison,sourceAuditPanel} from '../context-core.js';
 const read=p=>JSON.parse(readFileSync(new URL('../'+p,import.meta.url),'utf8'));
 const overview=read('data/overview.json'),latest={...read('data/latest.json'),stations:read('data/latest.json').stations.map(r=>({...r,date:'2026-10-11'}))};
 test('same calendar date: leap day never becomes March 1, missing never becomes zero',()=>{
@@ -12,9 +12,20 @@ test('empirical rank handles ties, negative levels and outside extremes',()=>{
  assert.deepEqual(distributionPosition(0,[[-1,2],[0,3],[2,5]]),{n:10,below:2,equal:3,above:5,percentile:50,min:-1,max:2});
  assert.equal(distributionPosition(-2,[[-1,1],[2,1]]).percentile,0);assert.equal(distributionPosition(3,[[-1,1],[2,1]]).percentile,100);
 });
-test('2025 values match recovered official monthly daily-mean cells; all rank counts reconcile',()=>{
- const expected={'Cáceres':.68,'Ladário':1.245,'Porto Murtinho':2.375};
- for(const r of latest.stations){const h=overview.stations[r.station],c=readingContext({...r,date:'2026-10-11'},h);assert.equal(c.previous.value,expected[r.station]);assert.equal(c.position.n,h.n);assert.equal(c.position.below+c.position.equal+c.position.above,h.n);assert.ok(contextBlock(r,h).includes('ANA · média diária publicada'));}
+test('previous year uses the official Marinha cells, rank uses only same-day ANA',()=>{
+ const expected={'Cáceres':.68,'Ladário':1.28,'Porto Murtinho':2.38},telemetry=read('data/telemetry-daily.json');
+ for(const r of latest.stations){const h=overview.stations[r.station],c=readingContext(r,h,[],telemetry);assert.equal(c.previous.value,expected[r.station]);assert.equal(c.previous.kind,'marinha');assert.ok(contextBlock(r,h,[],telemetry).includes('Marinha × Marinha'));
+  if(!telemetry.stations[r.station].daily.some(d=>d.date===r.date))assert.equal(c.position,null);
+  else {assert.equal(c.position.n,h.n);assert.equal(c.position.below+c.position.equal+c.position.above,h.n);assert.deepEqual(c.position,distributionPosition(c.reference.mean,h.distribution));}
+ }
+});
+test('source pairing never substitutes yesterday or missing values with zero',()=>{
+ const r={station:'Cáceres',date:'2026-10-11',level_m:0},telemetry={stations:{'Cáceres':{daily:[{date:'2026-10-10',mean:1,min:1,max:1}]}}};
+ assert.equal(sourceComparison(r,telemetry).differenceCm,null);
+ telemetry.stations['Cáceres'].daily.push({date:r.date,mean:0,min:0,max:0,n:1});assert.equal(sourceComparison(r,telemetry).differenceCm,0);
+ const h={n:1,distribution:[[0,1]],by_date:{'2025-10-11':2}};
+ const c=readingContext(r,h,[],telemetry);assert.equal(c.previous.kind,'ana');assert.ok(contextBlock(r,h,[],telemetry).includes('fontes diferentes'));
+ assert.equal(readingContext(r,h).position,null);
 });
 test('future same-source archive takes precedence; do not borrow nearby dates',()=>{
  const r={station:'Cáceres',date:'2027-10-11',level_m:1.2},h=overview.stations['Cáceres'];

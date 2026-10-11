@@ -53,7 +53,8 @@ function comparisonSeries(overview,telemetry,mode,year,visible=STATIONS){
   const h=overview.stations[name],color=stationColors[STATIONS.indexOf(name)];
   const rows=mode==='year'?dailyRows(telemetry,name,year).map(r=>({...r,x:calendarX(r.date),label:dateBR(r.date),key:r.date})):mode==='season'?h.profile.map(r=>({x:calendarX(r[0]),key:r[0],label:r[0].split('-').reverse().join('/'),min:r[1],max:r[2],mean:r[3],sd:r[4],n:r[5]})):h.annual.map(r=>({x:r[0]+.5,key:String(r[0]),label:String(r[0]),min:r[1],max:r[2],mean:r[3],sd:r[4],n:r[5]}));
   const supplemental=mode==='year'?(telemetry.supplement||[]).filter(r=>r.station===name&&r.date.startsWith(String(year))).map(r=>({...r,x:calendarX(r.date),mean:r.level_m,key:r.date,label:dateBR(r.date)})):[];
-  return {name,color,rows,supplemental};
+  const marine=mode==='year'?(telemetry.marinhaArchive||[]).filter(r=>r.station===name&&r.date.startsWith(String(year))&&Number.isFinite(r.level_m)).map(r=>({...r,x:calendarX(r.date),mean:r.level_m,key:r.date,label:dateBR(r.date)})):[];
+  return {name,color,rows,supplemental,marine};
  });
 }
 function comparisonGraph(series,{mode='year',width=1000,relative=false,bands=false,current=null,year=2026}={}){
@@ -61,11 +62,13 @@ function comparisonGraph(series,{mode='year',width=1000,relative=false,bands=fal
  let baseline=null;
  if(relative&&series.length){const common=series[0].rows.filter(r=>series.every(s=>s.rows.some(v=>v.key===r.key)));baseline=common[0]||null;}
  const plotted=series.map(s=>{const offset=relative&&baseline?s.rows.find(r=>r.key===baseline.key).mean:0;return {...s,rows:relative&&!baseline?[]:s.rows.map(r=>({...r,mean:r.mean-offset,min:r.min-offset,max:r.max-offset})),supplemental:relative&&!baseline?[]:(s.supplemental||[]).map(r=>({...r,mean:r.mean-offset})),offset};});
+ for(const s of plotted)s.marine=relative&&!baseline?[]:(s.marine||[]).map(r=>({...r,mean:r.mean-s.offset}));
  const all=plotted.flatMap(s=>s.rows),currentX=current?(mode==='history'?decimalYear(current.date):calendarX(current.date)):null;
  const x0=mode==='history'?1966:0,x1=mode==='history'?Math.max(2026,currentX?Math.ceil(currentX):2026):365;
- if(!all.length)return {svg:'<div class="plot-empty">'+(series.length?'Ainda não há observações verificadas neste recorte.':'Selecione uma estação para comparar.')+'</div>',rows:[],series:plotted,W,L,R,x0,x1,baseline};
+ if(!all.length&&!plotted.some(s=>s.marine.length))return {svg:'<div class="plot-empty">'+(series.length?'Ainda não há observações verificadas neste recorte.':'Selecione uma estação para comparar.')+'</div>',rows:[],series:plotted,W,L,R,x0,x1,baseline};
  const vals=all.flatMap(r=>bands?[r.min,r.max,r.mean+(r.sd||0),r.mean-(r.sd||0)]:[r.mean]);
  plotted.forEach(s=>(s.supplemental||[]).forEach(r=>vals.push(r.mean)));
+ plotted.forEach(s=>s.marine.forEach(r=>vals.push(r.mean)));
  if(current&&!relative)vals.push(current.level_m);
  const min=Math.min(...vals),max=Math.max(...vals),span=Math.max(.2,max-min),lo=Math.min(0,min)-span*.08,hi=max+span*.13;
  const X=x=>L+(x-x0)/(x1-x0)*(W-L-R),Y=y=>T+(hi-y)/(hi-lo)*(H-T-B);
@@ -84,6 +87,7 @@ function comparisonGraph(series,{mode='year',width=1000,relative=false,bands=fal
   }
   const last=s.rows[s.rows.length-1];if(last)svg+=`<circle cx="${X(last.x)}" cy="${Y(last.mean)}" r="4" fill="${s.color}" stroke="white" stroke-width="1.5"/>`;
   for(const r of s.supplemental||[]){const x=X(r.x),y=Y(r.mean);svg+=`<path class="supplemental-marker" d="M${x} ${y-5}l5 5-5 5-5-5Z" fill="white" stroke="${s.color}" stroke-width="1.8"><title>SGB · ${dateBR(r.date)} · 07h · ${format(r.mean)} m${relative?' de mudança':''}</title></path>`;}
+  for(const r of s.marine){if(current&&!relative&&current.station===s.name&&current.date===r.date)continue;svg+=`<circle class="marine-marker" cx="${X(r.x)}" cy="${Y(r.mean)}" r="4" fill="#bd5d36" stroke="white" stroke-width="1.2"><title>${escapeHTML(s.name)} · Marinha · ${dateBR(r.date)} · ${format(r.mean)} m${relative?' de mudança':''} · hora não informada</title></circle>`;}
  }
  if(current&&!relative){const mx=X(currentX),my=Y(current.level_m);svg+=`<circle class="latest-marker" cx="${mx}" cy="${my}" r="6" fill="#bd5d36" stroke="white" stroke-width="2"/><text x="${mx-9}" y="${Math.max(T+12,my-13)}" text-anchor="${mx<150?'start':'end'}" fill="#a24627" stroke="white" stroke-width="3" paint-order="stroke" font-size="11" font-family="sans-serif">Marinha · ${format(current.level_m)} m</text>`;}
  svg+=`<line class="hover-line" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="#647e8d" stroke-dasharray="3 3" visibility="hidden"/></svg>`;
@@ -107,29 +111,47 @@ function distributionPosition(value,counts){
  for(const [x,count] of counts){if(!Number.isFinite(x)||!Number.isInteger(count)||count<1)return null;n+=count;const k=Math.round(x*1e6);if(k<v)below+=count;else if(k===v)equal+=count;}
  return {n,below,equal,above:n-below-equal,percentile:100*(below+equal)/n,min:Math.min(...counts.map(r=>r[0])),max:Math.max(...counts.map(r=>r[0]))};
 }
-function readingContext(current,history,archive=[]){
+function sourceComparison(current,telemetry){
+ if(!current||!Number.isFinite(current.level_m))return null;
+ const rows=telemetry?.stations?.[current.station]?.daily||[];
+ const ana=rows.find(r=>r.date===current.date&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max));
+ const last=rows.filter(r=>r.date<=current.date).sort((a,b)=>b.date.localeCompare(a.date))[0]||null;
+ return {ana:ana||null,last,differenceCm:ana?Math.round((current.level_m-ana.mean)*1e8)/1e6:null};
+}
+function readingContext(current,history,archive=[],telemetry=null){
  if(!current||!Number.isFinite(current.level_m)||!history)return null;
  const previousDate=previousCalendarDate(current.date);
  const archived=previousDate?archive.find(r=>r.station===current.station&&r.date===previousDate&&Number.isFinite(r.level_m)):null;
- const historical=previousDate&&history.by_date?history.by_date[previousDate]:undefined;
- const previous=archived?{value:archived.level_m,source:'Marinha · leitura pontual'}:Number.isFinite(historical)?{value:historical,source:'ANA · média diária publicada'}:null;
+ const marine=previousDate?history.marinha?.by_date?.[previousDate]:undefined;
+ const historical=previousDate?history.by_date?.[previousDate]:undefined;
+ const previous=archived?{value:archived.level_m,source:'Marinha · leitura publicada',kind:'marinha'}:Number.isFinite(marine)?{value:marine,source:'Marinha · tabela histórica',kind:'marinha'}:Number.isFinite(historical)?{value:historical,source:'ANA · média diária publicada',kind:'ana'}:null;
+ const pair=sourceComparison(current,telemetry),reference=pair?.ana||null;
  const season=history.calendar_values?.[current.date.slice(5)]||[];
- return {previousDate,previous,difference:previous?Math.round((current.level_m-previous.value)*1e6)/1e6:null,position:distributionPosition(current.level_m,history.distribution),season:distributionPosition(current.level_m,season.map(v=>[v,1]))};
+ return {previousDate,previous,difference:previous?Math.round((current.level_m-previous.value)*1e6)/1e6:null,
+  pair,reference,position:reference?distributionPosition(reference.mean,history.distribution):null,
+  season:reference?distributionPosition(reference.mean,season.map(v=>[v,1])):null};
 }
-function contextBlock(current,history,archive=[]){
- const c=readingContext(current,history,archive);if(!c)return '<div class="reading-context">Comparação indisponível.</div>';
- const p=c.position,delta=c.difference,change=delta==null?'Sem registro nessa data':Math.abs(delta)<1e-6?'Mesmo valor':format(Math.abs(delta)*100,Number.isInteger(Math.abs(delta)*100)?0:1)+' cm '+(delta>0?'acima':'abaixo');
+function contextBlock(current,history,archive=[],telemetry=null){
+ const c=readingContext(current,history,archive,telemetry);if(!c)return '<div class="reading-context">Comparação indisponível.</div>';
+ const p=c.position,delta=c.difference,change=delta==null?'Sem registro nessa data':Math.abs(delta)<1e-6?'Mesmo valor':format(Math.abs(delta)*100,Number.isInteger(Math.round(Math.abs(delta)*1e6)/1e4)?0:1)+' cm '+(delta>0?'acima':'abaixo');
  const previousLabel=c.previousDate?dateBR(c.previousDate):'29/02 não existe no ano anterior';
  const rank=p?format(p.percentile,1)+'%':'—';
- return `<div class="reading-context"><div class="context-year"><span class="context-label">Mesmo dia do ano anterior</span><strong class="context-change">${delta==null?'':delta>0?'↗ ':delta<0?'↘ ':'→ '}${change}</strong><small>${previousLabel}${c.previous?' · '+format(c.previous.value)+' m':''}</small><small>${c.previous?c.previous.source:'Sem preencher a lacuna'}</small></div><div class="context-rank"><span class="context-label">Na base histórica completa</span><strong class="context-percent">${rank}</strong><small>das cotas são menores ou iguais a esta</small><div class="percentile-track" role="img" aria-label="Percentil ${p?format(p.percentile,1):'indisponível'} na base ANA"><i style="left:${p?Math.min(100,Math.max(0,p.percentile)):0}%"></i></div><div class="context-scale"><span>Mais baixas</span><span>Mais altas</span></div><small>ANA · 1966–2025 · ${p?format(p.n,0):'—'} dias</small></div></div>`;
+ return `<div class="reading-context"><div class="context-year"><span class="context-label">Mesmo dia do ano anterior</span><strong class="context-change">${delta==null?'':delta>0?'↗ ':delta<0?'↘ ':'→ '}${change}</strong><small>${previousLabel}${c.previous?' · '+format(c.previous.value,c.previous.kind==='ana'?3:2)+' m':''}</small><small>${c.previous?.kind==='marinha'?'Marinha × Marinha':c.previous?'Marinha × ANA · fontes diferentes':'Sem preencher a lacuna'}</small></div><div class="context-rank"><span class="context-label">Posição da média ANA</span><strong class="context-percent">${rank}</strong><small>${p?'das cotas históricas são menores ou iguais':'Sem dado ANA na mesma data'}</small>${p?`<div class="percentile-track" role="img" aria-label="Percentil ${format(p.percentile,1)} da média ANA na base ANA"><i style="left:${Math.min(100,Math.max(0,p.percentile))}%"></i></div><small>${format(c.reference.mean,3)} m · ${dateBR(c.reference.date)}${c.reference.partial_day?' · parcial':''}</small>`:''}<small>ANA · 1966–2025 · ${format(history.n,0)} dias</small></div></div>`;
 }
-function contextDetails(current,history,archive=[]){
- const c=readingContext(current,history,archive);if(!c||!c.position)return '';
+function contextDetails(current,history,archive=[],telemetry=null){
+ const c=readingContext(current,history,archive,telemetry);if(!c)return '';
  const p=c.position,s=c.season;
- return `<p class="context-method">Posição numérica: ${format(p.below,0)} dias abaixo, ${format(p.equal,0)} iguais e ${format(p.above,0)} acima desta cota. Percentil empírico = 100 × (menores + iguais) ÷ total. Extremos da base: ${format(p.min)} a ${format(p.max)} m.</p>${s?`<p class="context-method">Somente ${dateBR(current.date).slice(0,5)} nos anos anteriores: ${format(s.below+s.equal,0)} de ${s.n} anos com cotas menores ou iguais (${format(s.percentile,1)}%).</p>`:''}<p class="context-method">A leitura pontual da Marinha é comparada numericamente com médias diárias ANA. Esta referência não confirma a mesma hora, o mesmo ponto ou a continuidade do zero da régua. O histórico não inclui 2026; ANA recente e Marinha permanecem separados. Não é recorde oficial nem alerta de seca ou cheia.</p>`;
+ return `<p class="context-method">A diferença anual prioriza a Marinha nas duas datas. Quando só há ANA no ano anterior, o cartão identifica a comparação entre fontes. Não se usam dias vizinhos nem valores reconstruídos.</p>${c.previous?.kind==='marinha'?`<p class="context-method">Referência anterior: ${dateBR(c.previousDate)} · ${format(c.previous.value)} m · ${c.previous.source}. O mesmo órgão de origem não certifica, por si só, continuidade do ponto e do zero da régua.</p>`:''}${p?`<p class="context-method">O percentil usa a média ANA de ${dateBR(c.reference.date)} (${format(c.reference.mean,3)} m), comparada com as médias históricas ANA: ${format(p.below,0)} dias abaixo, ${format(p.equal,0)} iguais e ${format(p.above,0)} acima. Cálculo = 100 × (menores + iguais) ÷ total. A leitura Marinha não entra nesse cálculo.</p>`:'<p class="context-method">Sem média ANA na data da leitura Marinha, a posição histórica fica indisponível. Uma leitura antiga não é apresentada como se fosse de hoje.</p>'}${s?`<p class="context-method">Somente ${dateBR(current.date).slice(0,5)} nos anos anteriores: ${format(s.percentile,1)}% de ${s.n} valores ANA menores ou iguais.</p>`:''}<p class="context-method">O histórico longo usa médias publicadas pela ANA; a telemetria recente usa média dos registros disponíveis, que pode ser parcial. Mudanças de frequência, local e zero da régua ainda não foram homogeneizadas. São referências descritivas, não recordes oficiais ou alertas.</p>`;
 }
-function summaryCards(latest,overview,archive=[]){
- return STATIONS.map((name,i)=>{const r=latest.stations?.find(r=>r.station===name);return `<article class="now-card"><div class="now-head"><h3>${name}</h3><span class="source-tag">Marinha</span></div><div class="now-reading"><strong>${format(r?.level_m)}<small> m</small></strong><span>${dateBR(r?.date)}</span></div>${contextBlock(r,overview.stations[name],archive)}<details><summary>Ver horário e método <span>+</span></summary><p>Medição: ${dateBR(r?.date)} · ${escapeHTML(r?.measurement_time||'hora não informada pela Marinha')}.</p><p>Registro coletado em ${timeBR(r?.collected_at)}.</p>${contextDetails(r,overview.stations[name],archive)}</details></article>`;}).join('');
+function summaryCards(latest,overview,archive=[],telemetry=null){
+ return STATIONS.map(name=>{const r=latest.stations?.find(r=>r.station===name);return `<article class="now-card"><div class="now-head"><h3>${name}</h3><span class="source-tag">Marinha</span></div><div class="now-reading"><strong>${format(r?.level_m)}<small> m</small></strong><span>${dateBR(r?.date)}</span></div>${contextBlock(r,overview.stations[name],archive,telemetry)}<details><summary>Ver horário e método <span>+</span></summary><p>Medição: ${dateBR(r?.date)} · ${escapeHTML(r?.measurement_time||'hora não informada pela Marinha')}.</p><p>Registro coletado em ${timeBR(r?.collected_at)}.</p>${contextDetails(r,overview.stations[name],archive,telemetry)}</details></article>`;}).join('');
+}
+function sourceAuditPanel(latest,telemetry,audit){
+ const cards=STATIONS.map(name=>{const current=latest.stations?.find(r=>r.station===name),pair=sourceComparison(current,telemetry),a=pair?.ana;
+  const diff=pair?.differenceCm,sign=diff>0?'+':diff<0?'−':'';
+  return `<article class="source-pair"><h3>${name}</h3><span class="context-label">${dateBR(current?.date)}</span><dl><div><dt>Marinha · leitura</dt><dd>${format(current?.level_m)} m</dd></div><div><dt>ANA · média${a?.partial_day?' parcial':''}</dt><dd>${a?format(a.mean,3)+' m':'Indisponível'}</dd></div></dl><b class="source-difference">${a?'Diferença: '+sign+format(Math.abs(diff),2)+' cm':'Sem par na mesma data'}</b><small>${a?'ANA: '+format(a.min)+'–'+format(a.max)+' m · '+a.n+' registros':pair?.last?'Último dia ANA disponível: '+dateBR(pair.last.date):'Aguardando registros ANA'}.</small></article>`;}).join('');
+ const rows=audit?STATIONS.map(name=>{const a=audit.stations?.[name];return a?`<tr><th scope="row">${name}</th><td>${a.n}</td><td>${format(a.mean_absolute_difference_cm,2)} cm</td><td>${format(a.max_absolute_difference_cm,1)} cm</td></tr>`:'';}).join(''):'';
+ return `<div class="source-audit-heading"><div><span class="eyebrow">CONFERÊNCIA ENTRE FONTES</span><h2>ANA e Marinha, lado a lado.</h2></div><span class="source-tag">Mesma data</span></div><p class="context-intro">Diferença = leitura Marinha − média ANA. A hora da leitura Marinha não é informada; médias parciais podem mudar ao longo do dia.</p><div class="source-pairs">${cards}</div><details class="health-details"><summary>O que mostrou a auditoria de 2025 <span>+</span></summary>${rows?`<div class="source-table-wrap"><table><thead><tr><th>Estação</th><th>Pares</th><th>Dif. média absoluta</th><th>Maior diferença</th></tr></thead><tbody>${rows}</tbody></table></div><p>Datas coincidentes: ano completo para Cáceres e Ladário; 01/01 a 14/10 para Porto Murtinho. Tabelas Marinha recuperadas: 1.017 registros; 1.014 têm par elegível na base ANA. Essas contagens descrevem a auditoria, não toda a disponibilidade da Marinha.</p><p>A comparação com os registros ANA das 7h reduz a diferença média absoluta para 3,28 cm, 0,09 cm e 0,48 cm, respectivamente. Isso não elimina as divergências nem certifica a equivalência das réguas. Horários e fuso da medição Marinha não foram presumidos.</p>`:'<p>Relatório de pares indisponível nesta consulta.</p>'}<p><a href="data/source-audit.csv" download>Baixar todos os pares ↓</a> · <a href="data/history-marinha.csv" download>Histórico Marinha recuperado ↓</a> · <a href="https://www.marinha.mil.br/chn-6/alturaAnterioresRios" target="_blank" rel="noopener">Acervo oficial Marinha ↗</a></p><p>Os PDFs oficiais foram lidos pela extração textual pública. A cópia binária e a conferência visual não ficaram acessíveis nesta auditoria. URLs, páginas, transcrições e verificações dos totais estão no <a href="data/source-audit.json" target="_blank" rel="noopener">registro de procedência</a>.</p></details>`;
 }
 function nextScheduled(now=new Date(),times=['07:20','08:20','10:20','14:20']){
  const day=localToday(now),future=times.map(t=>new Date(day+'T'+t+':00-04:00')).filter(d=>d>now);
@@ -150,7 +172,8 @@ function validMarinhaFeed(feed,today=localToday()){
 const overview=JSON.parse(document.getElementById('overview-seed').textContent);
 let latest=JSON.parse(document.getElementById('latest-seed').textContent),telemetry=JSON.parse(document.getElementById('telemetry-seed').textContent),mode='year',busy=false;
 const stationRoot=document.getElementById('estacoes'),status=document.getElementById('connection-status'),refresh=document.getElementById('refresh'),visible=new Set(STATIONS);
-let graphCache={},overlayGraph=null,marinhaArchive=[];
+let graphCache={},overlayGraph=null,marinhaArchive=telemetry.marinhaArchive||[];
+const sourceAudit=JSON.parse(document.getElementById('source-audit-seed').textContent);
 function validFeed(feed){return validMarinhaFeed(feed);}
 function validTelemetry(feed){return feed&&feed.unit==='m'&&Number.isFinite(Date.parse(feed.fetched_at))&&STATIONS.every(name=>feed.stations&&feed.stations[name]&&Array.isArray(feed.stations[name].daily)&&feed.stations[name].daily.every(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday()&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max)&&r.min<=r.mean&&r.mean<=r.max&&r.n>0));}
 function rank(feed){return [Date.parse(feed.last_success_at)||0,Date.parse(feed.checked_at)||0];}
@@ -159,7 +182,9 @@ function canReplace(feed){return validFeed(feed)&&newer(feed,latest)&&STATIONS.e
 function current(name){return latest.stations.find(s=>s.station===name);}
 function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: losangos são leituras pontuais de boletins SGB, sem ligar os dias ausentes.';}
 function render(){
- document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive);
+ telemetry.marinhaArchive=marinhaArchive;
+ document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive,telemetry);
+ document.getElementById('source-audit').innerHTML=sourceAuditPanel(latest,telemetry,sourceAudit);
  document.getElementById('source-health').innerHTML=sourceHealth(latest,telemetry);
  const width=(stationRoot.querySelector('.plot')||{}).clientWidth||Math.min(850,Math.max(300,window.innerWidth-105));
  const open=Array.from(stationRoot.querySelectorAll('details[open]')).map(d=>d.closest('article').id);
@@ -172,7 +197,7 @@ function render(){
  document.getElementById('verified-at').textContent=timeBR(mode==='year'?telemetry.fetched_at:latest.last_success_at);
  document.querySelector('.update-label').innerHTML='<i></i> '+(mode==='year'?'Última consulta · ANA':'Última verificação · Marinha');
  document.getElementById('year-tab').textContent=telemetry.year;
- document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · registros ANA por dia; hoje é parcial. Losangos: leituras pontuais SGB.':mode==='history'?'Mínima, máxima, média e desvio-padrão das cotas diárias de cada ano · 1966–2025':'Distribuição de cada dia do calendário ao longo de 1966–2025';
+ document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · registros ANA por dia; hoje é parcial. Pontos laranja: Marinha; losangos: SGB.':mode==='history'?'Mínima, máxima, média e desvio-padrão das cotas diárias de cada ano · 1966–2025':'Distribuição de cada dia do calendário ao longo de 1966–2025';
  document.getElementById('year-coverage').textContent=coverageText();document.getElementById('year-coverage').hidden=mode!=='year';
  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
  document.querySelectorAll('.river-stops a').forEach((a,i)=>{const r=current(STATIONS[i]);a.querySelector('strong').textContent=format(r&&r.level_m)+' m';a.querySelector('small').textContent='Marinha · '+dateBR(r&&r.date).slice(0,5);});
@@ -182,7 +207,7 @@ function render(){
 function renderOverlay(){
  const host=document.getElementById('overlay-chart'),relative=document.getElementById('comparison-metric').value==='relative',series=comparisonSeries(overview,telemetry,mode,telemetry.year,Array.from(visible));
  overlayGraph=comparisonGraph(series,{mode,year:telemetry.year,width:host.clientWidth||Math.min(1040,Math.max(300,window.innerWidth-95)),relative});
- host.innerHTML=overlayGraph.svg;const readout=document.getElementById('overlay-readout');readout.textContent=mode==='year'?'Médias dos registros de cada dia · ANA · ◇ SGB às 7h':mode==='season'?'Médias do mesmo dia do calendário · 1966–2025':'Médias anuais · 1966–2025';
+ host.innerHTML=overlayGraph.svg;const readout=document.getElementById('overlay-readout');readout.textContent=mode==='year'?'Médias dos registros de cada dia · ANA · pontos laranja Marinha · ◇ SGB às 7h':mode==='season'?'Médias do mesmo dia do calendário · 1966–2025':'Médias anuais · 1966–2025';
  document.getElementById('overlay-note').textContent=relative?(overlayGraph.baseline?'Mudança em relação ao primeiro período comum: '+overlayGraph.baseline.label+'. Cada estação parte do seu próprio nível.':'Não há um período comum para esta comparação.'):'Cada régua tem seu próprio zero. Compare o comportamento das curvas; cotas não são altitudes.';
  const svg=host.querySelector('svg');if(svg)bindGraph(svg,overlayGraph,readout);document.getElementById('download-overlay').disabled=!svg;
 }

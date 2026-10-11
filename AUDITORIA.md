@@ -1,4 +1,4 @@
-# Auditoria da V2.3 — 11/10/2026
+# Auditoria da V2.4 — 11/10/2026
 
 ## Resultado
 
@@ -29,13 +29,38 @@ Códigos: Cáceres 66070004; Ladário 66825000; Porto Murtinho 67100000. Janela:
 - Respostas completas, incluindo os registros excluídos, em `data/snapshots/ana-history-2026-10-11.tar.gz`. URLs, momento da recuperação e SHA-256 em `data/history-provenance.json`.
 - Exemplo 11/10/2025: médias diárias oficiais ANA de **0,680 m** (Cáceres), **1,245 m** (Ladário) e **2,375 m** (Porto Murtinho). Os dados antigos eram 1,446666… m, 1,830 m e 1,446666… m.
 
+## Marinha × ANA: conferência de datas coincidentes
+
+A Marinha de fato mantém [tabelas de alturas anteriores](https://www.marinha.mil.br/chn-6/alturaAnterioresRios). A V2.4 recupera 1.017 registros de **2025** dos PDFs oficiais: 365 de Cáceres, 365 de Ladário e 287 de Porto Murtinho (até 14/10). O acervo completo da Marinha não foi declarado inexistente ou limitado a essas datas. Não foi possível recuperar e certificar todo o período 1966–2025 diretamente dela; o histórico longo permanece ANA, como autorizado.
+
+Foram abertos os PDFs, preservados seus textos, URLs, páginas e horários de captura em `data/snapshots/marinha-*-2025-web.json`. O download binário e a renderização retornaram erros HTTP 502 ou redirecionamento inacessível; **não houve inspeção visual dos PDFs**. O parser exige cabeçalho, estação/ano, 31 linhas, número exato de células por dia conforme o calendário e a cobertura da tabela, além de reproduzir mínimo, máximo e média publicados (tolerância de 0,011 m para arredondamento). Não extrai valores aproximados de gráficos nem interpreta células ambíguas. Essa limitação de verificação permanece explícita.
+
+| Local | Pares com média ANA | Diferença média absoluta | Maior diferença absoluta | Diferença média absoluta usando ANA 7h |
+| --- | ---: | ---: | ---: | ---: |
+| Cáceres | 364 | 3,78 cm | 17,0 cm | 3,28 cm |
+| Ladário | 364 | 0,34 cm | 5,0 cm | 0,09 cm |
+| Porto Murtinho | 286 | 0,99 cm | 18,5 cm | 0,48 cm |
+
+Diferença = Marinha menos ANA, sempre na mesma data/estação, sem deslocamento temporal. Há 1.014 pares elegíveis, não 1.017: um dia por estação não tem média diária elegível na seleção ANA. Datas sem par permanecem ausentes. Usar 7h reduz a diferença, mas não elimina todas as divergências: não se atribui causa exclusivamente ao horário nem se declara equivalência hidrométrica. Não foi estimado ou aplicado offset para forçar coincidência.
+
+### Exemplo verificável: 11/10/2025
+
+| Local | Marinha | ANA 7h | ANA 17h | Média diária ANA |
+| --- | ---: | ---: | ---: | ---: |
+| Cáceres | 0,68 m | 0,68 m | 0,68 m | 0,680 m |
+| Ladário | 1,28 m | 1,27 m | 1,22 m | 1,245 m |
+| Porto Murtinho | 2,38 m | 2,38 m | 2,37 m | 2,375 m |
+
+Fontes Marinha em `data/history-marinha.json`; resposta ANA original em `data/snapshots/ana-history-2026-10-11.tar.gz`. `data/source-audit.csv` contém todos os pares, leituras horárias e diferenças; `data/source-audit.json` contém os resumos e rastreabilidade. Horários 7h/17h são os rótulos ANA; fuso não declarado, hora Marinha desconhecida.
+
 ## Comparações na interface
 
-A diferença usa a última leitura Marinha menos o valor no mesmo dia/mês do ano anterior. Para 2025, a referência é a média diária ANA recuperada. Quando houver uma leitura Marinha no arquivo incremental para o ano anterior, ela terá prioridade e será identificada como tal. Ausência exata, inclusive 29/02, não usa dia vizinho. As médias de 2026 da telemetria não são substitutos silenciosos para a leitura Marinha.
-
-A posição é um percentil empírico: **100 × número de cotas menores ou iguais à leitura / número de cotas da estação na base histórica**. Usa todos os dias elegíveis disponíveis em 1966–2025, sem ponderar anos nem incluir o ponto atual. Empates entram no numerador. A interface também apresenta, nos detalhes, a posição somente entre os mesmos dias do calendário em anos anteriores. Base completa significa este recorte recuperado, não toda observação já feita na estação.
-
-A comparação é **numérica e descritiva**: leitura pontual atual e média diária histórica diferem em protocolo. A continuidade do zero e local da régua ainda não foi verificada, especialmente em Cáceres, onde a Marinha informa Ponte Marechal Rondon. Os resultados não são anomalias hidrológicas certificadas, recordes oficiais ou alertas de risco.
+- A diferença com o ano anterior prioriza Marinha × Marinha: arquivo incremental, depois tabela histórica Marinha recuperada. Só na ausência exata usa ANA, com rótulo explícito de fontes diferentes. Não usa dia vizinho, inclusive em 29/02.
+- Em 11/10/2026: Cáceres **47 cm acima**, Ladário **6 cm abaixo**, Porto Murtinho **49 cm acima** de 11/10/2025, usando Marinha nas duas datas. Mesmo órgão não certifica continuidade do zero/ponto.
+- O **percentil** agora usa a **média ANA da mesma data** em relação às médias diárias ANA de 1966–2025. Fórmula: 100 × número de cotas menores ou iguais / total da estação. Empates entram. Valor, data e caráter parcial são exibidos; não há percentil quando falta ANA na data Marinha. O painel não calcula mais um percentil da leitura Marinha contra médias ANA.
+- A telemetria recente é a média dos registros disponíveis, com frequência variável; o histórico usa médias publicadas. A mesma instituição não garante protocolo, cobertura diária ou datum homogêneos. Percentil é descritivo, não recorde certificado nem alerta.
+- A seção de conferência mostra Marinha, média ANA, intervalo intradiário, número de registros e diferença na mesma data. Em Porto Murtinho, a ausência ANA após 06/09/2026 não é comparada com outubro como se fosse simultânea.
+- Leituras Marinha acumuladas aparecem como pontos próprios nos gráficos de 2026; não substituem nem alteram a curva ou as estatísticas ANA. Novas coletas alimentam automaticamente os pontos e a conferência, sem calibração ou preenchimento oculto.
 
 ## Automação e falhas
 
@@ -52,6 +77,8 @@ A comparação é **numérica e descritiva**: leitura pontual atual e média di�
 # Extrair o pacote de respostas em .cache/history-source/
 python scripts/recover_history.py --offline
 python scripts/build_stats.py
+python scripts/recover_marinha.py
+python scripts/build_source_audit.py
 npm run build
 python -m unittest discover -s tests -v
 node --test tests/*.test.js

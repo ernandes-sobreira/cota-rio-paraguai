@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {summaryCards,sourceHealth} from '../context-core.js';
+import {summaryCards,sourceHealth,sourceAuditPanel} from '../context-core.js';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {STATIONS,stationCard,timeBR,escapeHTML} from '../dashboard-core.js';
@@ -8,11 +8,13 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const overview=JSON.parse(read('data/overview.json')),latest=JSON.parse(read('data/latest.json'));
 const telemetry=JSON.parse(read('data/telemetry-daily.json'));
+const archive=JSON.parse(read('data/daily.json')),audit=JSON.parse(read('data/source-audit.json'));
+telemetry.marinhaArchive=archive;
 telemetry.supplement=JSON.parse(read('data/sgb-supplement.json')).observations;
 // Source URLs repeat in every observation; the seed retains source_id + sources.
 for(const s of Object.values(telemetry.stations))s.daily=s.daily.map(({source_url,...row})=>row);
 const json=v=>JSON.stringify(v).replace(/</g,'\\u003c');
-const replacements={CONTEXT:summaryCards(latest,overview,JSON.parse(read('data/daily.json'))),HEALTH:sourceHealth(latest,telemetry),OVERVIEW:json(overview),LATEST:json(latest),TELEMETRY:json(telemetry),YEAR:telemetry.year,VERIFIED:escapeHTML(timeBR(telemetry.fetched_at)),STATIONS:STATIONS.map((name,i)=>{const r=latest.stations.find(s=>s.station===name);return stationCard(name,overview.stations[name],r,i,'year',850,yearCardExtras(overview,telemetry,name,r,i));}).join('\n'),OVERLAY:comparisonGraph(comparisonSeries(overview,telemetry,'year',telemetry.year),{mode:'year',year:telemetry.year}).svg,STATION_TOGGLES:STATIONS.map((name,i)=>`<label style="--station-color:${stationColors[i]}"><input type="checkbox" data-series value="${name}" checked><i></i>${name}</label>`).join(''),RIVER_STOPS:STATIONS.map((name,i)=>{const r=latest.stations.find(s=>s.station===name);return `<a href="#${['caceres','ladario','porto-murtinho'][i]}"><b>${name}</b><strong>${r.level_m.toFixed(2).replace('.',',')} m</strong><small>Marinha · ${r.date.slice(5).split('-').reverse().join('/')}</small></a>`;}).join(''),COVERAGE:STATIONS.map(name=>{const rows=dailyRows(telemetry,name,telemetry.year);return name+': '+rows.length+' dias ANA';}).join(' · ')+'. Porto Murtinho: lacunas após 06/09; losangos são leituras pontuais SGB.'};
+const replacements={AUDIT:sourceAuditPanel(latest,telemetry,audit),AUDIT_DATA:json(audit),CONTEXT:summaryCards(latest,overview,archive,telemetry),HEALTH:sourceHealth(latest,telemetry),OVERVIEW:json(overview),LATEST:json(latest),TELEMETRY:json(telemetry),YEAR:telemetry.year,VERIFIED:escapeHTML(timeBR(telemetry.fetched_at)),STATIONS:STATIONS.map((name,i)=>{const r=latest.stations.find(s=>s.station===name);return stationCard(name,overview.stations[name],r,i,'year',850,yearCardExtras(overview,telemetry,name,r,i));}).join('\n'),OVERLAY:comparisonGraph(comparisonSeries(overview,telemetry,'year',telemetry.year),{mode:'year',year:telemetry.year}).svg,STATION_TOGGLES:STATIONS.map((name,i)=>`<label style="--station-color:${stationColors[i]}"><input type="checkbox" data-series value="${name}" checked><i></i>${name}</label>`).join(''),RIVER_STOPS:STATIONS.map((name,i)=>{const r=latest.stations.find(s=>s.station===name);return `<a href="#${['caceres','ladario','porto-murtinho'][i]}"><b>${name}</b><strong>${r.level_m.toFixed(2).replace('.',',')} m</strong><small>Marinha · ${r.date.slice(5).split('-').reverse().join('/')}</small></a>`;}).join(''),COVERAGE:STATIONS.map(name=>{const rows=dailyRows(telemetry,name,telemetry.year);return name+': '+rows.length+' dias ANA';}).join(' · ')+'. Porto Murtinho: lacunas após 06/09; losangos são leituras pontuais SGB.'};
 const html=read('dashboard.template.html').replace(/\{\{(\w+)\}\}/g,(_,key)=>replacements[key]);
 fs.writeFileSync(path.join(root,'index.html'),html);
 const core=[read('dashboard-core.js'),read('comparison-core.js'),read('context-core.js')].map(s=>s.replace(/^import[^\n]+\n/gm,'').replace(/^export /gm,'')).join('\n');
