@@ -15,6 +15,6 @@ test('zero and negative readings are drawn and unknown time is explicit',()=>{
 });
 test('MT date uses local midnight, not UTC midnight',()=>{assert.equal(localToday(new Date('2026-10-12T02:00:00Z')),'2026-10-11');assert.equal(localToday(new Date('2026-10-12T05:00:00Z')),'2026-10-12');});
 test('published HTML works before JavaScript or data fetch',()=>{
- const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');assert.equal((html.match(/class="station-panel"/g)||[]).length,3);assert.equal((html.match(/class="history-svg"/g)||[]).length,3);assert.equal((html.match(/class="ruler-svg"/g)||[]).length,3);assert.equal((html.match(/class="latest-marker"/g)||[]).length,3);assert.ok(html.includes('id="verified-at"'));assert.ok(!html.includes('{{'));assert.ok(html.includes('Horário não informado pela fonte'));
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');assert.equal((html.match(/class="station-panel"/g)||[]).length,3);assert.equal((html.match(/class="history-svg(?: comparison-svg)?"/g)||[]).length,4);assert.equal((html.match(/class="ruler-svg"/g)||[]).length,3);assert.equal((html.match(/class="latest-marker"/g)||[]).length,3);assert.ok(html.includes('id="verified-at"'));assert.ok(!html.includes('{{'));assert.ok(html.includes('Horário não informado pela fonte'));
  const code=readFileSync(new URL('../dashboard.js',import.meta.url),'utf8');assert.ok(!code.includes('AbortSignal.timeout'));assert.ok(!/^import /m.test(code));
 });

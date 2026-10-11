@@ -1,4 +1,4 @@
-name: Atualizar cotas da Marinha
+name: Atualizar cotas ANA e Marinha
 on:
   schedule:
     # UTC: 07:20, 08:20, 10:20 e 14:20 em Mato Grosso (UTC-4).
@@ -30,16 +30,20 @@ jobs:
         id: collect
         continue-on-error: true
         run: python scripts/update_data.py
+      - name: Atualizar registros ANA por API pública
+        id: ana
+        continue-on-error: true
+        run: python scripts/update_telemetry.py --recent --output data/telemetry-daily.json --csv data/telemetry-daily.csv
       - name: Registrar observações e situação da coleta
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/
           if ! git diff --cached --quiet; then
-            git commit -m 'data: atualizar leituras e verificação da Marinha'
+            git commit -m 'data: atualizar registros ANA e leituras Marinha'
             git pull --rebase origin main
             git push origin HEAD:main
           fi
       - name: Sinalizar indisponibilidade da fonte
-        if: steps.collect.outcome == 'failure'
+        if: steps.collect.outcome == 'failure' || steps.ana.outcome == 'failure'
         run: exit 1

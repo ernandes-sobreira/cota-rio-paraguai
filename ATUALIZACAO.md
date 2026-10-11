@@ -18,4 +18,6 @@ O coletor direto do GitHub Actions recebeu HTTP 403 em 11/10/2026. Não existe c
 
 `.github/workflows/atualizar-cotas.yml`: 07h20, 08h20, 10h20 e 14h20 em MT (UTC−4). Horários são de consulta, não horários certificados da medição; o GitHub pode atrasar. `GITHUB_TOKEN` automático com `contents: write`, sem token pessoal exposto. Erro 403 é registrado como indisponibilidade do caminho direto. Outros erros de validação continuam a falhar o workflow.
 
-O histórico original vai até 26/12/2025. A nova série começa em 11/10/2026. Não unir as séries para inferência sem verificar datum, ponto de medição e protocolo de observação.
+O workflow também coleta a API pública da ANA com `scripts/update_telemetry.py --recent`, gerando `data/telemetry-daily.json` e `.csv`. Essa coleta é independente do complemento ChatGPT descrito acima: a tarefa ChatGPT continua alterando somente os arquivos Marinha, nunca os arquivos ANA ou SGB. A API ANA consultada não exige chave. Seus erros preservam as observações anteriores e são sinalizados no workflow.
+
+O histórico original vai até 26/12/2025. O arquivo incremental Marinha começa em 11/10/2026; o conjunto ANA foi recuperado desde 01/01/2026. Cobertura e lacunas estão em `DADOS_2026.md`. Não unir as séries para inferência sem verificar datum, ponto de medição e protocolo de observação.

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "year": 2026,
+  "source": "SGB · boletins de monitoramento da bacia do Paraguai",
+  "retrieval_method": "visual_verification_of_official_pdf_table",
+  "verified_at": "2026-10-11T13:14:09.468783+00:00",
+  "note": "Observações pontuais da Tabela 1 (página 1) dos boletins. Não são médias diárias. Fuso do horário 07h não especificado no boletim. Não interpolar dias ausentes.",
+  "observations": [
+    {
+      "station": "Porto Murtinho",
+      "code": "67100000",
+      "date": "2026-09-09",
+      "measurement_time": "07:00",
+      "level_m": 2.85,
+      "page": 1,
+      "source_url": "https://www.sgb.gov.br/sace/boletins/Paraguai/20260909_16-20260909%20-%20161943.pdf",
+      "source_sha256": "ed75b73ef569c146c9217b767f65315b14f1ffbd7ca06093b1a015a72c2dc355",
+      "downloaded_at": "2026-10-11T13:14:31.702094+00:00"
+    },
+    {
+      "station": "Porto Murtinho",
+      "code": "67100000",
+      "date": "2026-09-16",
+      "measurement_time": "07:00",
+      "level_m": 3.0,
+      "page": 1,
+      "source_url": "https://www.sgb.gov.br/sace/boletins/Paraguai/20260916_17-20260916%20-%20171632.pdf",
+      "source_sha256": "a9ed9cebef0b3dc78e4725b709746ca0c31bb8cc9a324c9eb806390ca4a3f531",
+      "downloaded_at": "2026-10-11T13:14:31.859747+00:00"
+    },
+    {
+      "station": "Porto Murtinho",
+      "code": "67100000",
+      "date": "2026-09-23",
+      "measurement_time": "07:00",
+      "level_m": 3.0,
+      "page": 1,
+      "source_url": "https://www.sgb.gov.br/sace/boletins/Paraguai/20260923_17-20260923%20-%20171412.pdf",
+      "source_sha256": "711f2e3ece53eca97f896be264b792166cb6e9d89b1b8eba7f6c212d5ce01c7e",
+      "downloaded_at": "2026-10-11T13:14:31.456632+00:00"
+    },
+    {
+      "station": "Porto Murtinho",
+      "code": "67100000",
+      "date": "2026-09-30",
+      "measurement_time": "07:00",
+      "level_m": 2.68,
+      "page": 1,
+      "source_url": "https://www.sgb.gov.br/sace/boletins/Paraguai/20260930_14-20260930%20-%20144938.pdf",
+      "source_sha256": "a23759a1a47822386605cd3cf4ab72f44b8b633990c212df4f305bd890207973",
+      "downloaded_at": "2026-10-11T13:14:41.614587+00:00"
+    },
+    {
+      "station": "Porto Murtinho",
+      "code": "67100000",
+      "date": "2026-10-07",
+      "measurement_time": "07:00",
+      "level_m": 2.85,
+      "page": 1,
+      "source_url": "https://www.sgb.gov.br/sace/boletins/Paraguai/20261007_16-20261007%20-%20165353.pdf",
+      "source_sha256": "762c548cc52d4ddb5bb6fad856462f4c6bf37e37ecc7c2be302c978e28b8225a",
+      "downloaded_at": "2026-10-11T13:14:41.790658+00:00"
+    }
+  ]
+}

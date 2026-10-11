@@ -6,12 +6,12 @@ const signed=(n,d=1)=>n==null?'—':(n>0?'+':'')+num(n,d), date=d=>d?d.slice(0,1
 const clock=d=>d?new Date(d).toLocaleString('pt-BR',{timeZone:'America/Campo_Grande',dateStyle:'short',timeStyle:'short'})+' (MT)':'—';
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Campo_Grande',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const age=d=>Math.round((epoch(today())-epoch(d))/DAY), months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-let stats=null,historical=[],daily=[],latest={},active='agora',liveFallback=false,archiveUnavailable=false,historySelection=null,trendSelection=null;
+let stats=null,historical=[],daily=[],latest={},telemetry={stations:{}},sgb=[],active='agora',liveFallback=false,archiveUnavailable=false,historySelection=null,trendSelection=null;
 const station=()=>$('station').value;
 const kpis=(id,items)=>$(id).innerHTML=items.map(([label,value,note])=>`<div class="kpi"><span>${esc(label)}</span><b>${esc(value)}</b><small>${esc(note)}</small></div>`).join('');
 function table(headers,rows){return `<table><thead><tr>${headers.map(h=>`<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;}
 function empty(id,title,body){$(id).innerHTML=`<div class="chart-empty"><b>${esc(title)}</b><span>${esc(body)}</span></div>`;}
-function chart(id,series,{title='',type='date',band=null,gap=Infinity,yLabel='Cota (m)'}={}){
+function chart(id,series,{title='',type='date',band=null,gap=Infinity,yLabel='Cota (m)',bandLabel='P10–P90'}={}){
  const host=$(id),all=series.flatMap(s=>s.points).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
  if(!all.length){empty(id,'Sem observações neste recorte','Altere o período ou aguarde novas leituras.');return;}
  const W=Math.max(300,Math.round(host.clientWidth||750)),H=W<450?265:300,L=48,R=17,T=33,B=40,pw=W-L-R,ph=H-T-B;
@@ -23,13 +23,13 @@ function chart(id,series,{title='',type='date',band=null,gap=Infinity,yLabel='Co
  const X=x=>L+(x-xmin)/(xmax-xmin)*pw,Y=y=>T+ph-(y-ymin)/(ymax-ymin)*ph;
  const xt=x=>type==='month'?months[Math.round(x)-1]||'':type==='year'?String(Math.round(x)):(xmax-xmin>720*DAY?String(new Date(x).getUTCFullYear()):new Date(x).toLocaleDateString('pt-BR',{timeZone:'UTC',month:'short',year:xmax-xmin>200*DAY?'2-digit':undefined,day:xmax-xmin<=200*DAY?'2-digit':undefined}));
  let svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}" tabindex="0"><title>${esc(title)}</title><desc>Use as setas do teclado ou toque no gráfico para consultar os valores. ${esc(yLabel)}. Fonte: Marinha do Brasil / base histórica do projeto.</desc><rect width="${W}" height="${H}" fill="white"/><text x="${L}" y="16" fill="#465a70" font-size="11" font-family="sans-serif">${esc(yLabel)}</text>`;
- for(let i=0;i<5;i++){const v=ymin+(ymax-ymin)*i/4,y=Y(v);svg+=`<path d="M${L} ${y}H${W-R}" stroke="#e6edf4"/><text x="${L-9}" y="${y+4}" text-anchor="end" fill="#62788b" font-size="11" font-family="sans-serif">${num(v,1)}</text>`;}
+ for(let i=0;i<5;i++){const v=ymin+(ymax-ymin)*i/4,y=Y(v);svg+=`<path d="M${L} ${y}H${W-R}" stroke="#e6edf4"/><text x="${L-9}" y="${y+4}" text-anchor="end" fill="#62788b" font-size="11" font-family="sans-serif">${num(v,(ymax-ymin)<1?2:1)}</text>`;}
  const ticks=type==='month'?[1,3,5,7,9,12]:Array.from({length:W<450?4:6},(_,i)=>xmin+(xmax-xmin)*i/(W<450?3:5));
  for(const v of ticks)svg+=`<text x="${X(v)}" y="${H-12}" text-anchor="middle" fill="#62788b" font-size="11" font-family="sans-serif">${esc(xt(v))}</text>`;
- if(band?.length){svg+=`<path d="${band.map((p,i)=>`${i?'L':'M'}${X(p.x)},${Y(p.hi)}`).join('')} ${[...band].reverse().map(p=>`L${X(p.x)},${Y(p.lo)}`).join('')}Z" fill="#dcedf5"/>`;}
+ if(band?.length){const groups=[];for(const p of band){if(!groups.length||p.x-groups[groups.length-1][groups[groups.length-1].length-1].x>gap)groups.push([]);groups[groups.length-1].push(p);}for(const band of groups)svg+=`<path d="${band.map((p,i)=>`${i?'L':'M'}${X(p.x)},${Y(p.hi)}`).join('')} ${[...band].reverse().map(p=>`L${X(p.x)},${Y(p.lo)}`).join('')}Z" fill="#dcedf5"/>`;}
  series.forEach((s,j)=>{let prev=null,d='';for(const p of s.points){if(!Number.isFinite(p.y)){prev=null;continue;}d+=`${!prev||p.x-prev.x>(s.gap??gap)?'M':'L'}${X(p.x).toFixed(2)},${Y(p.y).toFixed(2)} `;prev=p;}svg+=`<path d="${d}" fill="none" stroke="${s.color||colors[j%3]}" stroke-width="${s.dash?2:2.3}" ${s.dash?'stroke-dasharray="7 5"':''} stroke-linejoin="round"/>`;if(s.points.length<150&&!s.dash)for(const p of s.points.filter(p=>Number.isFinite(p.y)))svg+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${s.points.length===1?5:2.7}" fill="${s.color||colors[j%3]}"><title>${esc(p.label||xt(p.x))}: ${num(p.y)} m</title></circle>`;});
  svg+=`<line class="cursor" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="#8ba6b9" stroke-dasharray="3 3" visibility="hidden"/></svg>`;
- host.innerHTML=svg+`<div class="legend">${series.map((s,i)=>`<span><i style="background:${s.color||colors[i%3]}"></i>${esc(s.label)}</span>`).join('')}${band?'<span><i style="background:#dcedf5;height:9px"></i>P10–P90</span>':''}</div><div class="chart-tooltip" aria-live="polite">Toque ou passe o cursor para ver os valores. Teclado: ← →</div>`;
+ host.innerHTML=svg+`<div class="legend">${series.map((s,i)=>`<span><i style="background:${s.color||colors[i%3]}"></i>${esc(s.label)}</span>`).join('')}${band?`<span><i style="background:#dcedf5;height:9px"></i>${esc(bandLabel)}</span>`:''}</div><div class="chart-tooltip" aria-live="polite">Toque ou passe o cursor para ver os valores. Teclado: ← →</div>`;
  const el=host.querySelector('svg'),tip=host.querySelector('.chart-tooltip'),cursor=host.querySelector('.cursor');let idx=0;
  const first=series.find(s=>!s.dash)?.points.filter(p=>Number.isFinite(p.y))||all;
  const show=x=>{const closest=first.reduce((a,p)=>Math.abs(p.x-x)<Math.abs(a.x-x)?p:a,first[0]);idx=first.indexOf(closest);cursor.setAttribute('x1',X(closest.x));cursor.setAttribute('x2',X(closest.x));cursor.setAttribute('visibility','visible');tip.textContent=series.filter(s=>!s.dash).map(s=>{const candidates=s.points.filter(p=>Number.isFinite(p.y));if(!candidates.length)return '';const p=candidates.reduce((a,p)=>Math.abs(p.x-closest.x)<Math.abs(a.x-closest.x)?p:a,candidates[0]);if(p.x!==closest.x)return `${s.label}: sem observação`;return `${s.label} · ${p.label||xt(p.x)}: ${num(p.y)} m${p.note?' · '+p.note:''}`;}).filter(Boolean).join(' | ');};
@@ -46,18 +46,24 @@ function renderNow(){
  $('freshness').className='notice'+(liveFallback||old||directFailed?' warning':'');
  $('freshness').textContent=note+(r?`Última observação de ${station()}: ${date(r.date)}. `:'Aguardando uma observação validada. ')+(directFailed?'A consulta direta mais recente falhou; o último dado foi preservado. ':'')+`Última leitura verificada da fonte: ${clock(latest.last_success_at)}. Sem interpolação de dias ausentes.`;
  $('connection').textContent=liveFallback?'Cópia local':r?(age(r.date)===0?'Leitura de hoje':'Ver data da leitura'):'Sem leitura';$('connection').className='badge '+(!liveFallback&&r&&age(r.date)===0?'good':'warn');
- $('recent-title').textContent=station()+' · série diária nova';
- const all=daily.filter(d=>d.station===station()).sort((a,b)=>a.date.localeCompare(b.date)),last=all.at(-1),limit=$('recent-days').value;
- const rows=all.filter(r=>limit==='all'||!last||(epoch(last.date)-epoch(r.date))/DAY<Number(limit));
- if(!rows.length)empty('recent-chart','Arquivo diário em formação',archiveUnavailable?'O arquivo de observações não pôde ser carregado. Tente atualizar.':'As leituras serão acumuladas a cada atualização. O histórico de 1966–2025 já pode ser explorado.');
- else chart('recent-chart',[{label:station(),points:rows.map(r=>({x:epoch(r.date),y:r.level_m,label:date(r.date)}))}],{title:'Cotas diárias novas · '+station(),gap:DAY*1.5});
- const week=all.filter(d=>last&&(epoch(last.date)-epoch(d.date))/DAY<=6),span=week.length?(epoch(week.at(-1).date)-epoch(week[0].date))/DAY:0;
+ const ana=(telemetry.stations?.[station()]?.daily||[]),useANA=ana.length>0;
+ $('recent-title').textContent=station()+' · '+(useANA?telemetry.year+' · registros ANA':'leituras pontuais Marinha');
+ const all=useANA?ana.map(d=>({...d,level_m:d.mean})):daily.filter(d=>d.station===station()).sort((a,b)=>a.date.localeCompare(b.date)),last=all[all.length-1],limit=$('recent-days').value;
+ const rows=all.filter(r=>limit==='all'||(epoch(today())-epoch(r.date))/DAY<Number(limit));
+ if(rows.length<2)empty('recent-chart',rows.length?'Uma leitura não descreve uma evolução':'Sem sequência disponível nesta janela',rows.length?`${date(rows[0].date)} · ${num(rows[0].level_m)} m. Amplie a janela para ver os registros do ano.`:last?`Último registro ANA: ${date(last.date)}. Selecione o ano completo.`:'Aguardando registros validados.');
+ else{
+  const lines=[{label:useANA?'ANA · média dos registros do dia':station(),points:rows.map(r=>({x:epoch(r.date),y:r.level_m,label:date(r.date),note:useANA?r.n+' registros'+(r.partial_day?'; dia parcial':''):''}))}];
+  const extra=useANA?sgb.filter(r=>r.station===station()&&(limit==='all'||(epoch(today())-epoch(r.date))/DAY<Number(limit))):[];
+  if(extra.length)lines.push({label:'SGB · leitura às 7h',color:colors[2],gap:0,points:extra.map(r=>({x:epoch(r.date),y:r.level_m,label:date(r.date)}))});
+  chart('recent-chart',lines,{title:$('recent-title').textContent,gap:DAY*1.5,band:useANA?rows.map(r=>({x:epoch(r.date),lo:r.min,hi:r.max})):null,bandLabel:'Mín.–máx. intradiárias'});
+ }
+ const week=all.filter(d=>(epoch(today())-epoch(d.date))/DAY<=6),span=week.length?(epoch(week[week.length-1].date)-epoch(week[0].date))/DAY:0;
  const f=week.length>=5&&span>=4?fit(week.map(d=>({x:(epoch(d.date)-epoch(week[0].date))/DAY,y:d.level_m}))):null;
- $('recent-summary').textContent=f?`Movimento na última semana da série: ${signed(f.slope*100)} cm/dia; R² = ${num(f.r2,3)}; ${week.length} observações. Ajuste descritivo, sem projeção.`:`${rows.length} observação(ões) neste recorte. A tendência recente aparecerá após pelo menos cinco leituras em quatro ou mais dias na última semana da série. Não usamos o histórico antigo para preencher essa janela.`;
- $('recent-table').innerHTML=rows.length?table(['Data','Cota (m)','Variação publicada (cm)'],rows.slice(-7).reverse().map(r=>[date(r.date),num(r.level_m),signed(r.variation_m==null?null:r.variation_m*100,0)])):'';
+ $('recent-summary').textContent=(useANA?`${rows.length} dias com registros ANA. Média dos registros disponíveis, com frequência variável; não representa uma medição única às 7h. `:`${rows.length} leituras Marinha. `)+(f?`Movimento descritivo nos últimos 7 dias: ${signed(f.slope*100)} cm/dia; R² = ${num(f.r2,3)}. Sem projeção.`:'Sem sequência recente suficiente para estimar movimento.');
+ $('recent-table').innerHTML=rows.length?(useANA?table(['Data','Média (m)','Mín.–máx. (m)','Registros'],rows.slice(-7).reverse().map(r=>[date(r.date),num(r.mean),num(r.min)+'–'+num(r.max),r.n])):table(['Data','Cota (m)','Variação (cm)'],rows.slice(-7).reverse().map(r=>[date(r.date),num(r.level_m),signed(r.variation_m==null?null:r.variation_m*100,0)]))):'';
  $('daily-title').textContent=!r?'Aguardando leitura':r.variation_m>0?'A última leitura está em alta.':r.variation_m<0?'A última leitura está em queda.':'Uma observação, parte de um ciclo.';
  $('daily-reading').textContent=r?`${station()}, ${date(r.date)}: ${num(r.level_m)} m. ${delta(r)}. Isso descreve a observação publicada; não confirma a fase do ciclo, a extensão inundada ou impactos nas comunidades.`:'Assim que uma leitura oficial for verificada, ela será mostrada aqui.';
- if(stats)$('history-intro').textContent=`${num(historical.length,0)} observações nas três estações. Dados originais de 1966 a 26/12/2025; a lacuna até a implantação da V2 permanece explícita.`;
+ if(stats)$('history-intro').textContent=`${num(historical.length,0)} observações nas três estações. Dados originais de 1966 a 26/12/2025; registros de 2026 estão no acompanhamento ANA, com fonte e cobertura próprias.`;
 }
 function selection(){const start=$('hist-start').value,end=$('hist-end').value;if(!start||!end||start>end||start<'1966-01-01'||end>'2025-12-26')throw Error('Escolha datas entre 01/01/1966 e 26/12/2025, com início anterior ou igual ao fim.');return {start,end,scale:$('hist-scale').value,metric:$('hist-metric').value,rows:historical.filter(r=>r.station===station()&&r.date>=start&&r.date<=end)};}
 function renderHistory(){if(!stats)return;let q;try{q=selection();$('hist-error').hidden=true;}catch(e){$('hist-error').textContent=e.message;$('hist-error').hidden=false;historySelection=null;return;}historySelection=q;const s=describe(q.rows,q.start,q.end),a=aggregate(q.rows,q.scale,q.metric);$('hist-metric').disabled=q.scale==='daily';
@@ -82,11 +88,16 @@ function renderTrend(){if(!stats)return;const start=Number($('trend-start').valu
 function renderAudit(){const r=latest.stations?.find(r=>r.station===station());$('audit-status').innerHTML=table(['Registro','Situação'],[['Última observação',date(r?.date)],['Verificação da fonte',clock(latest.last_success_at)],['Consulta direta',latest.fetch_status==='error'?'Indisponível · último dado preservado':latest.fetch_status==='ok'?'Concluída':latest.fetch_status==='verified_web'?'Leitura pública verificada':'Aguardando'],['Origem da leitura',r?.collection_method==='verified_public_web'?'Página oficial, extração pública verificada':'Tabela pública CHN-6'],['Ponto / observação',r?.observation||'Não informado'],['Acesso ao feed',liveFallback?'Cópia local de contingência':'Feed remoto consultado']]);}
 function renderVisible(){if(active==='agora')renderNow();if(active==='historico')renderHistory();if(active==='tendencias')renderTrend();if(active==='metodo')renderAudit();}
 async function get(url){const controller=typeof AbortController==='function'?new AbortController():null;let timer;try{const r=await Promise.race([fetch(url,{cache:'no-store',...(controller?{signal:controller.signal}:{})}),new Promise((_,reject)=>{timer=setTimeout(()=>{if(controller)controller.abort();reject(Error('Tempo de consulta excedido'));},18000);})]);if(!r.ok)throw Error('HTTP '+r.status);return r;}finally{clearTimeout(timer);}}
-async function loadLive(){let feed,archive;liveFallback=false;archiveUnavailable=false;const base='https://raw.githubusercontent.com/ernandes-sobreira/cota-rio-paraguai/main/data/';
+async function loadTelemetry(){
+ const base='https://raw.githubusercontent.com/ernandes-sobreira/cota-rio-paraguai/main/data/';
+ const [a,b]=await Promise.all([get(base+'telemetry-daily.json?t='+Date.now()).then(r=>r.json()).catch(()=>get('./data/telemetry-daily.json').then(r=>r.json()).catch(()=>null)),get('./data/sgb-supplement.json').then(r=>r.json()).catch(()=>null)]);
+ if(a&&a.unit==='m'&&a.stations)telemetry=a;if(b&&Array.isArray(b.observations))sgb=b.observations;
+}
+async function loadLive(){const anaLoad=loadTelemetry();let feed,archive;liveFallback=false;archiveUnavailable=false;const base='https://raw.githubusercontent.com/ernandes-sobreira/cota-rio-paraguai/main/data/';
  try{feed=await (await get(base+'latest.json?t='+Date.now())).json();}catch(e){liveFallback=true;try{feed=await (await get('./data/latest.json')).json();}catch{feed={stations:[],fetch_status:'error'};}}
  try{archive=await (await get((liveFallback?'./data/':base)+'daily.json?t='+Date.now())).json();}catch{try{archive=await (await get('./data/daily.json')).json();}catch{archive=[];archiveUnavailable=true;}}
  if(!Array.isArray(feed.stations))feed.stations=[];feed.stations=feed.stations.filter(r=>N.includes(r.station)&&typeof r.level_m==='number'&&Number.isFinite(r.level_m)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=today());
- latest=feed;daily=Array.isArray(archive)?archive.filter(r=>N.includes(r.station)&&typeof r.level_m==='number'&&Number.isFinite(r.level_m)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=today()):[];renderNow();if(active==='metodo')renderAudit();
+ await anaLoad;latest=feed;daily=Array.isArray(archive)?archive.filter(r=>N.includes(r.station)&&typeof r.level_m==='number'&&Number.isFinite(r.level_m)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=today()):[];renderNow();if(active==='metodo')renderAudit();
 }
 function download(name,text,type='text/csv;charset=utf-8'){const blob=new Blob([type.startsWith('text/csv')?'\uFEFF':'',text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 const csv=(headers,rows)=>[headers,...rows].map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';')).join('\r\n');
