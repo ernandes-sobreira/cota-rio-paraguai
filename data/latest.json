@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "source_url": "https://www.marinha.mil.br/chn-6/",
+  "checked_at": "2026-10-11T12:05:18+00:00",
+  "schedule_local": [
+    "07:20",
+    "08:20",
+    "10:20",
+    "14:20"
+  ],
+  "timezone": "America/Campo_Grande",
+  "fetch_status": "error",
+  "error": "HTTPError: HTTP Error 403: Forbidden"
+}
