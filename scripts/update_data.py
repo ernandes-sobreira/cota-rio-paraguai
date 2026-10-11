@@ -1,5 +1,6 @@
 """Collect the public CHN-6 table. No API key, inference or gap filling."""
 import argparse
+import gzip
 import csv
 import hashlib
 import io
@@ -41,8 +42,12 @@ class Tables(HTMLParser):
             self.row = None
 
 def number(s):
-    m = re.search(r'[+−-]?\s*\d+(?:[,.]\d+)?', s)
-    return float(re.sub(r'\s', '', m[0]).replace(',', '.').replace('−', '-')) if m else None
+    raw=s.strip().rstrip(';').strip()
+    if not raw:return None
+    if plain(raw) in ('estacionado','estavel'):return 0.0
+    m=re.fullmatch(r'([+−-]?\s*\d+(?:[,.]\d+)?)\s*[mM]?',raw)
+    if not m:raise ValueError('Número não reconhecido na célula oficial')
+    return float(re.sub(r'\s','',m[1]).replace(',','.').replace('−','-'))
 
 def parse_html(html, today=None):
     today = today or datetime.now(ZoneInfo('America/Campo_Grande')).date()
@@ -101,7 +106,7 @@ def main():
         records = parse_html(body.decode('utf-8', errors='replace'))
         sha = hashlib.sha256(body).hexdigest()
         for record in records:
-            record['collected_at'] = now; record['source_sha256'] = sha
+            record['collected_at'] = now; record['source_sha256'] = sha; record['collection_method']='direct_official_html'
         old = json.loads(archive_path.read_text()) if archive_path.exists() else []
         # Preserve collection timestamps when the observation itself did not change.
         previous_by_key = {(r['station'], r['date']): r for r in old}
@@ -114,8 +119,10 @@ def main():
         status.update(fetch_status='ok', last_success_at=now, last_direct_attempt_at=now, direct_status='ok', stations=latest, error=None)
         dump(archive_path, merged)
         # Git provides the complete revision trail; one raw table snapshot per collection date.
+        (data / 'snapshots').mkdir(parents=True,exist_ok=True)
+        (data / 'snapshots' / (now[:10] + '-marinha.html.gz')).write_bytes(gzip.compress(body,mtime=0))
         dump(data / 'snapshots' / (now[:10] + '.json'), dict(source_url=SOURCE, fetched_at=now, sha256=sha, rows=[r['raw_cells'] for r in records]))
-        stream = io.StringIO(newline=''); w = csv.writer(stream)
+        stream = io.StringIO(newline=''); w = csv.writer(stream,lineterminator="\n")
         w.writerow(['station', 'date', 'cota_m', 'variacao_publicada_m', 'source_url', 'collected_at', 'observation'])
         for r in merged: w.writerow([r['station'], r['date'], r['level_m'], '' if r['variation_m'] is None else r['variation_m'], SOURCE, r['collected_at'], r['observation']])
         (data / 'daily.csv').write_text(stream.getvalue(), encoding='utf-8')

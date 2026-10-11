@@ -2,8 +2,8 @@
 const overview=JSON.parse(document.getElementById('overview-seed').textContent);
 let latest=JSON.parse(document.getElementById('latest-seed').textContent),telemetry=JSON.parse(document.getElementById('telemetry-seed').textContent),mode='year',busy=false;
 const stationRoot=document.getElementById('estacoes'),status=document.getElementById('connection-status'),refresh=document.getElementById('refresh'),visible=new Set(STATIONS);
-let graphCache={},overlayGraph=null;
-function validFeed(feed){return feed&&Array.isArray(feed.stations)&&Number.isFinite(Date.parse(feed.last_success_at))&&STATIONS.every(name=>feed.stations.some(s=>s.station===name&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&s.date<=localToday()&&typeof s.level_m==='number'&&s.level_m>=-10&&s.level_m<=30));}
+let graphCache={},overlayGraph=null,marinhaArchive=[];
+function validFeed(feed){return validMarinhaFeed(feed);}
 function validTelemetry(feed){return feed&&feed.unit==='m'&&Number.isFinite(Date.parse(feed.fetched_at))&&STATIONS.every(name=>feed.stations&&feed.stations[name]&&Array.isArray(feed.stations[name].daily)&&feed.stations[name].daily.every(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday()&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max)&&r.min<=r.mean&&r.mean<=r.max&&r.n>0));}
 function rank(feed){return [Date.parse(feed.last_success_at)||0,Date.parse(feed.checked_at)||0];}
 function newer(a,b){const x=rank(a),y=rank(b);return x[0]>y[0]||(x[0]===y[0]&&x[1]>y[1]);}
@@ -11,6 +11,8 @@ function canReplace(feed){return validFeed(feed)&&newer(feed,latest)&&STATIONS.e
 function current(name){return latest.stations.find(s=>s.station===name);}
 function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: losangos são leituras pontuais de boletins SGB, sem ligar os dias ausentes.';}
 function render(){
+ document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive);
+ document.getElementById('source-health').innerHTML=sourceHealth(latest,telemetry);
  const width=(stationRoot.querySelector('.plot')||{}).clientWidth||Math.min(850,Math.max(300,window.innerWidth-105));
  const open=Array.from(stationRoot.querySelectorAll('details[open]')).map(d=>d.closest('article').id);
  graphCache={};stationRoot.innerHTML=STATIONS.map((name,i)=>{
@@ -56,10 +58,11 @@ function saveFile(name,text,type){const url=URL.createObjectURL(new Blob([text],
 async function fetchJSON(url,valid){const controller=typeof AbortController==='function'?new AbortController():null;let timer;try{return await Promise.race([(async()=>{const response=await fetch(url,{cache:'no-store',...(controller?{signal:controller.signal}:{})});if(!response.ok)throw Error('HTTP '+response.status);const feed=await response.json();if(!valid(feed))throw Error('Dados inválidos');return feed;})(),new Promise((_,reject)=>{timer=setTimeout(()=>{if(controller)controller.abort();reject(Error('Tempo de consulta excedido'));},7000);})]);}finally{clearTimeout(timer);}}
 async function update(){if(busy||typeof fetch!=='function')return;busy=true;refresh.disabled=true;status.textContent='Consultando atualização…';try{
  const stamp=Date.now(),base='https://raw.githubusercontent.com/ernandes-sobreira/cota-rio-paraguai/main/data/';
+ const archiveLoad=fetchJSON(base+'daily.json?t='+stamp,v=>Array.isArray(v)&&v.every(r=>STATIONS.includes(r.station)&&Number.isFinite(r.level_m)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday())).then(v=>{marinhaArchive=v;}).catch(()=>{});
  const [feeds,records]=await Promise.all([Promise.all(['data/latest.json',base+'latest.json'].map(url=>fetchJSON(url+'?t='+stamp,validFeed).catch(()=>null))),Promise.all(['data/telemetry-daily.json',base+'telemetry-daily.json'].map(url=>fetchJSON(url+'?t='+stamp,validTelemetry).catch(()=>null)))]);
- let changed=false;feeds.filter(Boolean).forEach(feed=>{if(canReplace(feed)){latest=feed;changed=true;}});records.filter(Boolean).forEach(feed=>{if(Date.parse(feed.fetched_at)>Date.parse(telemetry.fetched_at)&&feed.year>=telemetry.year){feed.supplement=telemetry.supplement;telemetry=feed;changed=true;}});
- if(changed){render();try{localStorage.setItem('cota-paraguai-v2-last',JSON.stringify(latest));localStorage.setItem('cota-paraguai-v2-ana',JSON.stringify(telemetry));}catch{}}
- status.textContent=records.some(Boolean)?'Dados ANA consultados'+(telemetry.status==='partial_error'?' · consulta parcial':''): 'Cópia ANA preservada · sem conexão';
+ let changed=false;feeds.filter(Boolean).forEach(feed=>{if(canReplace(feed)){latest=feed;changed=true;}});records.filter(Boolean).forEach(feed=>{if(Date.parse(feed.checked_at||feed.fetched_at)>Date.parse(telemetry.checked_at||telemetry.fetched_at)&&feed.year>=telemetry.year){feed.supplement=telemetry.supplement;telemetry=feed;changed=true;}});
+ await archiveLoad;render();if(changed){try{localStorage.setItem('cota-paraguai-v2-last',JSON.stringify(latest));localStorage.setItem('cota-paraguai-v2-ana',JSON.stringify(telemetry));}catch{}}
+ status.textContent=records.some(Boolean)?'Dados ANA consultados'+(telemetry.status==='partial_error'?' · consulta parcial':telemetry.status==='error'?' · última coleta falhou':''): 'Cópia ANA preservada · sem conexão';
  status.title='Marinha verificada em '+timeBR(latest.last_success_at)+(latest.fetch_status==='error'?'. Consulta direta indisponível; última leitura preservada.':'');
  }catch{status.textContent='Cópia preservada · sem conexão';}finally{busy=false;refresh.disabled=false;}}
  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;render();});

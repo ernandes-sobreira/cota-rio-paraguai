@@ -1,6 +1,6 @@
 # Dados de 2026: origem e reprodução
 
-A V2.2 substitui o gráfico com uma única observação por um conjunto recuperado do serviço público da ANA. A cópia inicial, consultada em 11/10/2026, contém 64.320 registros originais com cota e 817 combinações estação/dia. Não são dados simulados nem cotas reconstruídas pela variação publicada.
+A recuperação inicial da V2.2 substituiu o gráfico com uma única observação por um conjunto recuperado do serviço público da ANA. A cópia inicial, consultada em 11/10/2026, contém 64.320 registros originais com cota e 817 combinações estação/dia. Não são dados simulados nem cotas reconstruídas pela variação publicada.
 
 | Local | Código ANA | Dias | Período observado | Registros |
 | --- | --- | ---: | --- | ---: |
@@ -45,3 +45,7 @@ Após 06/09/2026, as respostas ANA consultadas não trazem cotas de Porto Murtin
 Cinco leituras da Tabela 1, página 1, de boletins oficiais do SGB foram verificadas visualmente: 09/09 (2,85 m), 16/09 (3,00 m), 23/09 (3,00 m), 30/09 (2,68 m) e 07/10 (2,85 m), todas às 07h, sem fuso especificado no boletim. URLs individuais, hashes dos PDFs e datas de verificação estão em `data/sgb-supplement.json`.
 
 Esses pontos aparecem como losangos separados. Não entram nas médias ANA, não preenchem outros dias e não são ligados por linhas. O complemento SGB é uma recuperação documental desta versão; o agendamento automático abrange ANA e Marinha. A leitura pontual Marinha mais recente aparece como círculo laranja com sua data própria.
+
+## Revisão V2.3
+
+O histórico legado foi retirado dos cálculos após divergências. A base histórica atual é data/history-ana.csv, recuperada de HidroSerieHistorica (médias diárias publicadas, 1966–2025). A telemetria de 2026 continua separada. A recuperação nesta sessão atualizou Cáceres e Ladário; Porto Murtinho continua sem cotas ANA posteriores a 06/09/2026. Consulte AUDITORIA.md.

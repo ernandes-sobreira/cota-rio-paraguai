@@ -45,7 +45,7 @@ def build(path):
             value = float(r['cota_m'])
             if not math.isfinite(value): raise ValueError('Non-finite value')
             stations[r['station']].append((day, value))
-    result = dict(schema_version=2, historical_source='Base original do repositório; atribuída à Marinha do Brasil na versão anterior.',
+    result = dict(schema_version=2, historical_source='ANA HidroSerieHistorica; médias diárias publicadas, nível de consistência 1; procedência em history-provenance.json.',
                   input_sha256=hashlib.sha256(path.read_bytes()).hexdigest(), baseline=[1991,2020], stations={})
     for name, rows in stations.items():
         rows.sort(); ys=collections.defaultdict(list); ms=collections.defaultdict(list); season=collections.defaultdict(list)
@@ -77,6 +77,6 @@ def build(path):
     return result
 
 if __name__=='__main__':
-    result=build(ROOT/'rio_paraguai_estacoes_cota_diaria.csv')
+    result=build(ROOT/'data/history-ana.csv')
     (ROOT/'data'/'statistics.json').write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n',encoding='utf-8')
     for name,s in result['stations'].items(): print(name,s['n'],'observações;',s['missing'],'dias ausentes;',s['trends']['mean']['n'],'anos elegíveis')

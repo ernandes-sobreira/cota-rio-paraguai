@@ -6,6 +6,7 @@ Use --offline --cache-dir DIR to reproduce from saved XML snapshots.
 Use --recent for rolling 40-day refresh while preserving older aggregated dates.
 The legacy public endpoint may disappear; a failed fetch never erases older days.
 """
+import gzip
 import argparse,calendar,collections,concurrent.futures,csv,datetime,hashlib,json,math,pathlib,statistics,urllib.parse,urllib.request,xml.etree.ElementTree as ET
 STATIONS={'Cáceres':'66070004','Ladário':'66825000','Porto Murtinho':'67100000'}
 ENDPOINT='https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos'
@@ -92,12 +93,24 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
         for name,key,source,rows,error in pool.map(lambda item:fetch_month(item,args.cache_dir,args.offline,end),queries):
             if error:errors.append({'source_id':key,'error':error});continue
-            success+=1;sources[key]=source
+            success+=1
+            if not args.offline:
+                raw=args.cache_dir/f"{source['station_code']}-{source['range_start'][:7]}.xml"
+                snapshot=args.output.parent/'snapshots'/'ana-rolling'/raw.with_suffix('.xml.gz').name
+                snapshot.parent.mkdir(parents=True,exist_ok=True)
+                snapshot.write_bytes(gzip.compress(raw.read_bytes(),mtime=0))
+                source['snapshot_path']=snapshot.as_posix()
+            sources[key]=source
             # Blank or unavailable days do not delete previously acquired observations.
             for row in rows:daily_by_station[name][row['date']]=row
-    if success==0:raise SystemExit('Nenhuma consulta bem-sucedida; arquivo anterior preservado')
+    if success==0:
+        if previous:
+            previous.update(status='error',checked_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),errors=errors)
+            temp=args.output.with_suffix('.tmp');temp.write_text(json.dumps(previous,ensure_ascii=False,separators=(',',':'))+'\n');temp.replace(args.output)
+        print('Nenhuma consulta bem-sucedida; observações anteriores preservadas')
+        return 1
     now=datetime.datetime.now(datetime.timezone.utc).isoformat()
-    result=dict(schema_version=1,year=args.year,fetched_at=now,source_url=ENDPOINT,source='ANA · serviço público de dados hidrometeorológicos',unit='m',original_unit='cm',timestamp_timezone=None,timestamp_note=SOURCE_NOTE,aggregation='Média aritmética dos registros de nível disponíveis por data publicada; mínimo, máximo e desvio-padrão amostral intradiários. Frequência variável. Não é média de 24 horas garantida; não há interpolação.',legacy_service_notice='A ANA anuncia migração do serviço legado para HidroWebService. Disponibilidade futura não garantida; falhas preservam os dados anteriores.',status='partial_error' if errors else 'ok',errors=errors,stations={},sources=sources)
+    result=dict(schema_version=1,year=args.year,fetched_at=now,checked_at=now,source_url=ENDPOINT,source='ANA · serviço público de dados hidrometeorológicos',unit='m',original_unit='cm',timestamp_timezone=None,timestamp_note=SOURCE_NOTE,aggregation='Média aritmética dos registros de nível disponíveis por data publicada; mínimo, máximo e desvio-padrão amostral intradiários. Frequência variável. Não é média de 24 horas garantida; não há interpolação.',legacy_service_notice='A ANA anuncia migração do serviço legado para HidroWebService. Disponibilidade futura não garantida; falhas preservam os dados anteriores.',status='partial_error' if errors else 'ok',errors=errors,stations={},sources=sources)
     for name,code in STATIONS.items():
         daily=sorted(daily_by_station[name].values(),key=lambda d:d['date']);dates={d['date'] for d in daily};expected=(end-start).days+1;missing=[(start+datetime.timedelta(days=i)).isoformat() for i in range(expected) if (start+datetime.timedelta(days=i)).isoformat() not in dates]
         result['stations'][name]=dict(code=code,source_url=ENDPOINT,daily=daily,coverage=dict(days_with_data=len(daily),days_elapsed=expected,missing_days=len(missing),missing_dates=missing,start=daily[0]['date'] if daily else None,end=daily[-1]['date'] if daily else None,observation_count=sum(d['n'] for d in daily)),frequency_counts=dict(collections.Counter(d['frequency'] for d in daily)))
@@ -107,8 +120,9 @@ def main():
     if args.csv:
         fields=['station','code','date','mean','min','max','sd','n','first_timestamp','last_timestamp','source_id','source_url','frequency','partial_day','quality']
         with args.csv.open('w',newline='') as f:
-            writer=csv.DictWriter(f,fieldnames=fields);writer.writeheader()
+            writer=csv.DictWriter(f,fieldnames=fields,lineterminator="\n");writer.writeheader()
             for n,s in result['stations'].items():
                 for d in s['daily']:writer.writerow(dict(station=n,code=s['code'],**d))
     print(json.dumps({n:s['coverage']|{'missing_dates':None} for n,s in result['stations'].items()},ensure_ascii=False))
-if __name__=='__main__':main()
+    return 1 if errors else 0
+if __name__=='__main__':raise SystemExit(main())

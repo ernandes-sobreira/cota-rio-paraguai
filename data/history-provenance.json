@@ -1,0 +1,81 @@
+{
+  "source_url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica",
+  "period": [
+    "1966-01-01",
+    "2025-12-31"
+  ],
+  "selection": "MediaDiaria=1; NivelConsistencia=1 (bruto conforme documentação atual do endpoint); status explícito diferente de 1 excluído. Status ausente mantido como desconhecido. Sem interpolação ou mistura com observações horárias.",
+  "stations": {
+    "Cáceres": {
+      "url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica?codEstacao=66070004&dataInicio=01%2F01%2F1966&dataFim=31%2F12%2F2025&tipoDados=1&nivelConsistencia=1",
+      "sha256": "e50b9076b962eb63e8e7b69573c82fb6e7ba83bae7eedaa222b8dfbfe8536c84",
+      "retrieved_at": "2026-10-11T14:32:11.504695+00:00",
+      "code": "66070004",
+      "n": 21234,
+      "start": "1966-01-01",
+      "end": "2025-12-31",
+      "excluded_status": {
+        "2": 47,
+        "3": 10
+      },
+      "unknown_status": 1982,
+      "legacy_common": 21083,
+      "legacy_different": 17038,
+      "previous_year_example": {
+        "date_str": "2025-10-11",
+        "cota_m": 0.68,
+        "source_status": "",
+        "consistency": "1",
+        "daily_mean": "1"
+      }
+    },
+    "Ladário": {
+      "url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica?codEstacao=66825000&dataInicio=01%2F01%2F1966&dataFim=31%2F12%2F2025&tipoDados=1&nivelConsistencia=1",
+      "sha256": "039b6b6dbd9b057e452b0573ec36eea812d249802306642cbc64e3d93c68f2df",
+      "retrieved_at": "2026-10-11T14:32:11.042421+00:00",
+      "code": "66825000",
+      "n": 20460,
+      "start": "1966-01-01",
+      "end": "2025-12-31",
+      "excluded_status": {
+        "2": 39,
+        "3": 79
+      },
+      "unknown_status": 1583,
+      "legacy_common": 20131,
+      "legacy_different": 8492,
+      "previous_year_example": {
+        "date_str": "2025-10-11",
+        "cota_m": 1.245,
+        "source_status": "1",
+        "consistency": "1",
+        "daily_mean": "1"
+      }
+    },
+    "Porto Murtinho": {
+      "url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/HidroSerieHistorica?codEstacao=67100000&dataInicio=01%2F01%2F1966&dataFim=31%2F12%2F2025&tipoDados=1&nivelConsistencia=1",
+      "sha256": "af5ff672ce9876acff2cc19052c620f56aa2eeaab177dcf87d57532c915e81c7",
+      "retrieved_at": "2026-10-11T14:32:11.173625+00:00",
+      "code": "67100000",
+      "n": 21731,
+      "start": "1966-01-01",
+      "end": "2025-12-31",
+      "excluded_status": {
+        "2": 92,
+        "3": 49
+      },
+      "unknown_status": 2150,
+      "legacy_common": 21723,
+      "legacy_different": 21678,
+      "previous_year_example": {
+        "date_str": "2025-10-11",
+        "cota_m": 2.375,
+        "source_status": "",
+        "consistency": "1",
+        "daily_mean": "1"
+      }
+    }
+  },
+  "legacy_sha256": "55e8b8112054fe75856289b41583c0f840b1f322791c6ae432fc025aead3deb1",
+  "output_sha256": "26e3fcad84181c30d4f8d232234af87fc990bef6cd6dab1a5b581317bf63150e"
+}

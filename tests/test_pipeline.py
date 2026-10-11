@@ -17,6 +17,10 @@ class CollectorTests(unittest.TestCase):
         rows=parse_html(table(level='−0,29 M;', variation='- 0,02 M'),date(2026,10,11))
         self.assertEqual(rows[0]['level_m'],-.29);self.assertEqual(rows[0]['variation_m'],-.02)
         self.assertIsNone(rows[0]['measurement_time']);self.assertEqual(rows[0]['date'],'2026-10-11')
+    def test_reject_ambiguous_numeric_text(self):
+        with self.assertRaises(ValueError):number('1,20 M; erro 2')
+        self.assertEqual(number('ESTACIONADO'),0)
+
     def test_missing_variation_is_not_zero(self):
         self.assertIsNone(parse_html(table(variation=''),date(2026,10,11))[0]['variation_m'])
     def test_reject_structure_change(self):

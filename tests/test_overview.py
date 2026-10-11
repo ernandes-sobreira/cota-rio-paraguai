@@ -20,7 +20,7 @@ class OverviewTests(unittest.TestCase):
 
     def test_every_profile_against_original_observations(self):
         groups={}
-        with (ROOT/'rio_paraguai_estacoes_cota_diaria.csv').open() as f:
+        with (ROOT/'data/history-ana.csv').open() as f:
             for r in csv.DictReader(f):
                 if r['cota_m'].strip():groups.setdefault((r['station'],r['date_str'][5:]),[]).append(float(r['cota_m']))
         overview=json.loads((ROOT/'data/overview.json').read_text())

@@ -95,12 +95,63 @@ function yearCardExtras(overview,telemetry,name,current,index,width=850){
  return {graph,stats:dailySummary(rows),scope:rows.length+' dias com dados · '+year,caption:'ANA · média e dispersão dos registros do dia · estação '+(s.code||'—'),statsLabels:['Mín. observada','Média dos dias','Máx. observada','Desvio entre dias'],details:`<p class="telemetry-note">ANA ${escapeHTML(s.code||'')} · ${rows.length} dias observados${rows.length?', de '+dateBR(rows[0].date)+' a '+dateBR(rows[rows.length-1].date):''}. Média diária dos registros disponíveis; a quantidade e os horários podem variar. Dias ausentes ficam em branco. A leitura pontual da Marinha permanece identificada à parte.</p>`};
 }
 
+/* Shared, deterministic context for both pages. No synthetic observations. */
+function previousCalendarDate(day){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day||''))return null;
+ const target=String(Number(day.slice(0,4))-1)+day.slice(4),d=new Date(target+'T12:00:00Z');
+ return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===target?target:null;
+}
+function distributionPosition(value,counts){
+ if(!Number.isFinite(value)||!Array.isArray(counts)||!counts.length)return null;
+ let below=0,equal=0,n=0;const v=Math.round(value*1e6);
+ for(const [x,count] of counts){if(!Number.isFinite(x)||!Number.isInteger(count)||count<1)return null;n+=count;const k=Math.round(x*1e6);if(k<v)below+=count;else if(k===v)equal+=count;}
+ return {n,below,equal,above:n-below-equal,percentile:100*(below+equal)/n,min:Math.min(...counts.map(r=>r[0])),max:Math.max(...counts.map(r=>r[0]))};
+}
+function readingContext(current,history,archive=[]){
+ if(!current||!Number.isFinite(current.level_m)||!history)return null;
+ const previousDate=previousCalendarDate(current.date);
+ const archived=previousDate?archive.find(r=>r.station===current.station&&r.date===previousDate&&Number.isFinite(r.level_m)):null;
+ const historical=previousDate&&history.by_date?history.by_date[previousDate]:undefined;
+ const previous=archived?{value:archived.level_m,source:'Marinha · leitura pontual'}:Number.isFinite(historical)?{value:historical,source:'ANA · média diária publicada'}:null;
+ const season=history.calendar_values?.[current.date.slice(5)]||[];
+ return {previousDate,previous,difference:previous?Math.round((current.level_m-previous.value)*1e6)/1e6:null,position:distributionPosition(current.level_m,history.distribution),season:distributionPosition(current.level_m,season.map(v=>[v,1]))};
+}
+function contextBlock(current,history,archive=[]){
+ const c=readingContext(current,history,archive);if(!c)return '<div class="reading-context">Comparação indisponível.</div>';
+ const p=c.position,delta=c.difference,change=delta==null?'Sem registro nessa data':Math.abs(delta)<1e-6?'Mesmo valor':format(Math.abs(delta)*100,Number.isInteger(Math.abs(delta)*100)?0:1)+' cm '+(delta>0?'acima':'abaixo');
+ const previousLabel=c.previousDate?dateBR(c.previousDate):'29/02 não existe no ano anterior';
+ const rank=p?format(p.percentile,1)+'%':'—';
+ return `<div class="reading-context"><div class="context-year"><span class="context-label">Mesmo dia do ano anterior</span><strong class="context-change">${delta==null?'':delta>0?'↗ ':delta<0?'↘ ':'→ '}${change}</strong><small>${previousLabel}${c.previous?' · '+format(c.previous.value)+' m':''}</small><small>${c.previous?c.previous.source:'Sem preencher a lacuna'}</small></div><div class="context-rank"><span class="context-label">Na base histórica completa</span><strong class="context-percent">${rank}</strong><small>das cotas são menores ou iguais a esta</small><div class="percentile-track" role="img" aria-label="Percentil ${p?format(p.percentile,1):'indisponível'} na base ANA"><i style="left:${p?Math.min(100,Math.max(0,p.percentile)):0}%"></i></div><div class="context-scale"><span>Mais baixas</span><span>Mais altas</span></div><small>ANA · 1966–2025 · ${p?format(p.n,0):'—'} dias</small></div></div>`;
+}
+function contextDetails(current,history,archive=[]){
+ const c=readingContext(current,history,archive);if(!c||!c.position)return '';
+ const p=c.position,s=c.season;
+ return `<p class="context-method">Posição numérica: ${format(p.below,0)} dias abaixo, ${format(p.equal,0)} iguais e ${format(p.above,0)} acima desta cota. Percentil empírico = 100 × (menores + iguais) ÷ total. Extremos da base: ${format(p.min)} a ${format(p.max)} m.</p>${s?`<p class="context-method">Somente ${dateBR(current.date).slice(0,5)} nos anos anteriores: ${format(s.below+s.equal,0)} de ${s.n} anos com cotas menores ou iguais (${format(s.percentile,1)}%).</p>`:''}<p class="context-method">A leitura pontual da Marinha é comparada numericamente com médias diárias ANA. Esta referência não confirma a mesma hora, o mesmo ponto ou a continuidade do zero da régua. O histórico não inclui 2026; ANA recente e Marinha permanecem separados. Não é recorde oficial nem alerta de seca ou cheia.</p>`;
+}
+function summaryCards(latest,overview,archive=[]){
+ return STATIONS.map((name,i)=>{const r=latest.stations?.find(r=>r.station===name);return `<article class="now-card"><div class="now-head"><h3>${name}</h3><span class="source-tag">Marinha</span></div><div class="now-reading"><strong>${format(r?.level_m)}<small> m</small></strong><span>${dateBR(r?.date)}</span></div>${contextBlock(r,overview.stations[name],archive)}<details><summary>Ver horário e método <span>+</span></summary><p>Medição: ${dateBR(r?.date)} · ${escapeHTML(r?.measurement_time||'hora não informada pela Marinha')}.</p><p>Registro coletado em ${timeBR(r?.collected_at)}.</p>${contextDetails(r,overview.stations[name],archive)}</details></article>`;}).join('');
+}
+function nextScheduled(now=new Date(),times=['07:20','08:20','10:20','14:20']){
+ const day=localToday(now),future=times.map(t=>new Date(day+'T'+t+':00-04:00')).filter(d=>d>now);
+ if(future.length)return new Date(Math.min(...future));
+ return new Date(Date.parse(day+'T'+times[0]+':00-04:00')+86400000);
+}
+function sourceHealth(latest,telemetry){
+ const direct=latest.direct_status==='unavailable'||latest.fetch_status==='error';
+ const ana=telemetry?.status==='partial_error'?'Consulta ANA parcial':telemetry?.status==='error'?'Consulta ANA falhou':telemetry?.fetched_at?'Última consulta ANA concluída':'ANA sem consulta confirmada';
+ return `<div class="health-grid"><div><span class="context-label">Marinha · última verificação</span><b>${timeBR(latest.last_success_at)}</b><small>${direct?'Consulta direta indisponível · leitura pública complementar':'Página oficial consultada'}</small></div><div><span class="context-label">ANA · última coleta bem-sucedida</span><b>${timeBR(telemetry?.fetched_at)}</b><small>${ana}</small></div><div><span class="context-label">Próxima tentativa direta prevista</span><b>${timeBR(nextScheduled().toISOString())}</b><small>Horário de MT · pode haver atraso</small></div></div><details class="health-details"><summary>Coleta, horários e rastreabilidade <span>+</span></summary><p>A hora de coleta é a consulta à fonte, não a hora da medição. A Marinha publica a data, mas não a hora da leitura. Última tentativa direta: ${timeBR(latest.last_direct_attempt_at||latest.checked_at)}.</p><p>Consultas diárias: 07h20, 08h20, 10h20 e 14h20 (MT, UTC−4). Complemento público agendado às 08h e 14h, sujeito à disponibilidade. O botão atualizar busca o último arquivo publicado. Em falhas, o último dado é preservado com sua data real.</p><p>O histórico foi recuperado da ANA em 11/10/2026. A base antiga apresentou divergências e está preservada somente para auditoria. <a href="https://github.com/ernandes-sobreira/cota-rio-paraguai/blob/main/AUDITORIA.md" target="_blank" rel="noopener">Ver auditoria</a> · <a href="data/history-provenance.json" target="_blank" rel="noopener">Procedência e hashes</a> · <a href="https://github.com/ernandes-sobreira/cota-rio-paraguai/actions" target="_blank" rel="noopener">Execuções da coleta ↗</a></p></details>`;
+}
+function validMarinhaFeed(feed,today=localToday()){
+ if(!feed||feed.source_url!=='https://www.marinha.mil.br/chn-6/'||!Array.isArray(feed.stations)||feed.stations.length!==3||!Number.isFinite(Date.parse(feed.last_success_at)))return false;
+ return STATIONS.every(name=>feed.stations.filter(s=>s.station===name).length===1&&feed.stations.some(s=>s.station===name&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&!Number.isNaN(Date.parse(s.date+'T00:00:00Z'))&&new Date(s.date+'T00:00:00Z').toISOString().slice(0,10)===s.date&&s.date<=today&&Number.isFinite(s.level_m)&&s.level_m>=-10&&s.level_m<=30&&(s.variation_m==null||Number.isFinite(s.variation_m))));
+}
+
 // Classic bundle with all initial plots already rendered in HTML.
 const overview=JSON.parse(document.getElementById('overview-seed').textContent);
 let latest=JSON.parse(document.getElementById('latest-seed').textContent),telemetry=JSON.parse(document.getElementById('telemetry-seed').textContent),mode='year',busy=false;
 const stationRoot=document.getElementById('estacoes'),status=document.getElementById('connection-status'),refresh=document.getElementById('refresh'),visible=new Set(STATIONS);
-let graphCache={},overlayGraph=null;
-function validFeed(feed){return feed&&Array.isArray(feed.stations)&&Number.isFinite(Date.parse(feed.last_success_at))&&STATIONS.every(name=>feed.stations.some(s=>s.station===name&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&s.date<=localToday()&&typeof s.level_m==='number'&&s.level_m>=-10&&s.level_m<=30));}
+let graphCache={},overlayGraph=null,marinhaArchive=[];
+function validFeed(feed){return validMarinhaFeed(feed);}
 function validTelemetry(feed){return feed&&feed.unit==='m'&&Number.isFinite(Date.parse(feed.fetched_at))&&STATIONS.every(name=>feed.stations&&feed.stations[name]&&Array.isArray(feed.stations[name].daily)&&feed.stations[name].daily.every(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday()&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max)&&r.min<=r.mean&&r.mean<=r.max&&r.n>0));}
 function rank(feed){return [Date.parse(feed.last_success_at)||0,Date.parse(feed.checked_at)||0];}
 function newer(a,b){const x=rank(a),y=rank(b);return x[0]>y[0]||(x[0]===y[0]&&x[1]>y[1]);}
@@ -108,6 +159,8 @@ function canReplace(feed){return validFeed(feed)&&newer(feed,latest)&&STATIONS.e
 function current(name){return latest.stations.find(s=>s.station===name);}
 function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: losangos são leituras pontuais de boletins SGB, sem ligar os dias ausentes.';}
 function render(){
+ document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive);
+ document.getElementById('source-health').innerHTML=sourceHealth(latest,telemetry);
  const width=(stationRoot.querySelector('.plot')||{}).clientWidth||Math.min(850,Math.max(300,window.innerWidth-105));
  const open=Array.from(stationRoot.querySelectorAll('details[open]')).map(d=>d.closest('article').id);
  graphCache={};stationRoot.innerHTML=STATIONS.map((name,i)=>{
@@ -153,10 +206,11 @@ function saveFile(name,text,type){const url=URL.createObjectURL(new Blob([text],
 async function fetchJSON(url,valid){const controller=typeof AbortController==='function'?new AbortController():null;let timer;try{return await Promise.race([(async()=>{const response=await fetch(url,{cache:'no-store',...(controller?{signal:controller.signal}:{})});if(!response.ok)throw Error('HTTP '+response.status);const feed=await response.json();if(!valid(feed))throw Error('Dados inválidos');return feed;})(),new Promise((_,reject)=>{timer=setTimeout(()=>{if(controller)controller.abort();reject(Error('Tempo de consulta excedido'));},7000);})]);}finally{clearTimeout(timer);}}
 async function update(){if(busy||typeof fetch!=='function')return;busy=true;refresh.disabled=true;status.textContent='Consultando atualização…';try{
  const stamp=Date.now(),base='https://raw.githubusercontent.com/ernandes-sobreira/cota-rio-paraguai/main/data/';
+ const archiveLoad=fetchJSON(base+'daily.json?t='+stamp,v=>Array.isArray(v)&&v.every(r=>STATIONS.includes(r.station)&&Number.isFinite(r.level_m)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday())).then(v=>{marinhaArchive=v;}).catch(()=>{});
  const [feeds,records]=await Promise.all([Promise.all(['data/latest.json',base+'latest.json'].map(url=>fetchJSON(url+'?t='+stamp,validFeed).catch(()=>null))),Promise.all(['data/telemetry-daily.json',base+'telemetry-daily.json'].map(url=>fetchJSON(url+'?t='+stamp,validTelemetry).catch(()=>null)))]);
- let changed=false;feeds.filter(Boolean).forEach(feed=>{if(canReplace(feed)){latest=feed;changed=true;}});records.filter(Boolean).forEach(feed=>{if(Date.parse(feed.fetched_at)>Date.parse(telemetry.fetched_at)&&feed.year>=telemetry.year){feed.supplement=telemetry.supplement;telemetry=feed;changed=true;}});
- if(changed){render();try{localStorage.setItem('cota-paraguai-v2-last',JSON.stringify(latest));localStorage.setItem('cota-paraguai-v2-ana',JSON.stringify(telemetry));}catch{}}
- status.textContent=records.some(Boolean)?'Dados ANA consultados'+(telemetry.status==='partial_error'?' · consulta parcial':''): 'Cópia ANA preservada · sem conexão';
+ let changed=false;feeds.filter(Boolean).forEach(feed=>{if(canReplace(feed)){latest=feed;changed=true;}});records.filter(Boolean).forEach(feed=>{if(Date.parse(feed.checked_at||feed.fetched_at)>Date.parse(telemetry.checked_at||telemetry.fetched_at)&&feed.year>=telemetry.year){feed.supplement=telemetry.supplement;telemetry=feed;changed=true;}});
+ await archiveLoad;render();if(changed){try{localStorage.setItem('cota-paraguai-v2-last',JSON.stringify(latest));localStorage.setItem('cota-paraguai-v2-ana',JSON.stringify(telemetry));}catch{}}
+ status.textContent=records.some(Boolean)?'Dados ANA consultados'+(telemetry.status==='partial_error'?' · consulta parcial':telemetry.status==='error'?' · última coleta falhou':''): 'Cópia ANA preservada · sem conexão';
  status.title='Marinha verificada em '+timeBR(latest.last_success_at)+(latest.fetch_status==='error'?'. Consulta direta indisponível; última leitura preservada.':'');
  }catch{status.textContent='Cópia preservada · sem conexão';}finally{busy=false;refresh.disabled=false;}}
  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;render();});
