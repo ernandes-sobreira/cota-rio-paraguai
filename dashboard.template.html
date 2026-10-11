@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8fa">
+  <meta name="description" content="O nível do Rio Paraguai em Cáceres, Ladário e Porto Murtinho. Leituras da Marinha, histórico de 1966–2025 e réguas de referência.">
+  <title>Cota Rio Paraguai · Níveis e histórico</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="dashboard.css?v=2.1">
+  <script defer src="dashboard.js?v=2.1"></script>
+</head>
+<body>
+  <a class="skip" href="#estacoes">Ir para os gráficos</a>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Cota Rio Paraguai, início"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 10Q9 4 16 10T29 10M3 17Q9 11 16 17T29 17M3 24Q9 18 16 24T29 24"/></svg><span>Cota <b>Rio Paraguai</b></span><small>V2</small></a>
+    <nav aria-label="Principal"><a href="analises.html">Análises <span>↗</span></a><a href="rio_paraguai_estacoes_cota_diaria.csv" download>Dados <span>↓</span></a></nav>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="title">
+      <div><span class="eyebrow">OBSERVATÓRIO DO RIO PARAGUAI</span><h1>O rio, em perspectiva.</h1><p>Três estações. Sessenta anos de história.</p></div>
+      <div class="update-info"><span class="update-label"><i></i> Última verificação dos dados</span><strong id="verified-at">{{VERIFIED}}</strong><div><span id="connection-status" role="status">Leituras preservadas</span><button id="refresh" aria-label="Consultar atualização dos dados" title="Consultar atualização">↻</button></div></div>
+    </section>
+    <section class="chart-toolbar" aria-label="Configuração dos gráficos">
+      <div class="mode-switch" role="group" aria-label="Escala de tempo"><button data-mode="history" aria-pressed="true">Série histórica</button><button data-mode="season" aria-pressed="false">Ciclo anual</button></div>
+      <div class="legend" aria-label="Legenda"><span><i class="extremes"></i> Mín.–máx.</span><span><i class="deviation"></i> ±1 desvio</span><span><i class="average"></i> Média</span><span><i class="current"></i> Última leitura</span></div>
+    </section>
+    <p class="mode-caption" id="mode-caption">Mínima, máxima, média e desvio-padrão das cotas diárias de cada ano · 1966–2025</p>
+    <div id="estacoes" class="stations">{{STATIONS}}</div>
+    <p class="comparison-note">O ponto atual é uma referência visual. A continuidade do local e do zero das réguas com o histórico ainda não foi confirmada.</p>
+    <details class="how-to"><summary>Como ler os gráficos <span>+</span></summary><div class="how-grid"><p><b>Cinza</b> é o intervalo entre a menor e a maior cota observada. <b>Azul</b> mostra a média ± um desvio-padrão amostral. Essa faixa descreve a dispersão, não uma previsão.</p><p><b>Série histórica:</b> estatísticas das leituras diárias de cada ano. <b>Ciclo anual:</b> reúne o mesmo dia do calendário nos anos de 1966–2025; 29 de fevereiro usa apenas leituras reais dessa data.</p><p><b>Laranja</b> é a última leitura publicada, na data indicada. O ponto não entra nos cálculos históricos. A cota usa o zero de cada régua; não mede a profundidade nem a vazão do rio.</p><p>O horário de verificação é quando o dado foi consultado. O horário da medição só aparece quando a fonte o informa. Datas sem leitura não são preenchidas. <a href="analises.html#metodo">Métodos e limites ↗</a></p></div></details>
+    <a class="analysis-link" href="analises.html"><span>Tendências, ecologia e dimensão humana</span><span>Explorar análises ↗</span></a>
+    <noscript><p class="offline">Você está vendo a cópia de {{VERIFIED}}. Ative o JavaScript para consultar dados novos e alternar os gráficos.</p></noscript>
+  </main>
+  <footer><span>Uma iniciativa de <b>Ernandes Sobreira</b></span><span>Fonte atual: <a href="https://www.marinha.mil.br/chn-6/" target="_blank" rel="noopener">Marinha do Brasil ↗</a></span><details><summary>Créditos da base histórica</summary><p>Claumir Cesar Muniz, Derick Victor de Souza Campos e Wilkinson Kiwi Lopes Lázaro.</p></details></footer>
+  <script type="application/json" id="overview-seed">{{OVERVIEW}}</script>
+  <script type="application/json" id="latest-seed">{{LATEST}}</script>
+</body>
+</html>

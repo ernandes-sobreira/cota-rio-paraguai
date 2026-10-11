@@ -1,8 +1,19 @@
-# Cota Rio Paraguai · V2
+# Cota Rio Paraguai · V2.1
 
 Painel de cotas de Cáceres, Ladário e Porto Murtinho: https://ernandes-sobreira.github.io/cota-rio-paraguai/
 
-Visual alinhado ao Chuva-MT: fundo claro, tipografia Sora/Source Sans 3, azul, verde e navegação responsiva. Implementação estática, sem dependências JavaScript externas, chaves no navegador ou dados sintéticos.
+Painel minimalista em fundo claro, azul e cinza, com um gráfico e uma régua por estação. A página principal não depende de fontes, bibliotecas externas ou requisições para exibir os gráficos iniciais. Implementação estática, sem chaves no navegador ou dados sintéticos.
+
+## Painel principal
+
+- Três gráficos independentes, com mínima, máxima, média, faixa de ±1 desvio-padrão amostral e ponto da última leitura na data real.
+- **Série histórica:** estatísticas das leituras diárias de cada ano, 1966–2025. O ponto atual é separado e não prolonga a curva histórica.
+- **Ciclo anual:** estatísticas para cada dia do calendário nos anos da base; 29/02 usa somente dias efetivamente observados. Sem suavização ou preenchimento.
+- Cotas, variações, data de cada leitura e última verificação em horário de MT visíveis. Horário da medição explicitamente não informado quando ausente na tabela oficial.
+- Régua esquemática referida ao zero local, sem representar o fundo nem a profundidade do rio.
+- HTML com gráficos prontos, antes de executar JavaScript. Script clássico sem `AbortSignal.timeout`, feed com limite de espera e preservação dos dados em caso de falha. Último feed válido pode ser guardado no navegador.
+- Consulta ao gráfico por ponteiro ou setas do teclado e exportação SVG dentro dos detalhes de cada estação.
+- Análises completas, tendências e contextos ecológicos e humanos em [analises.html](analises.html).
 
 ## Funcionalidades
 
@@ -42,14 +53,18 @@ Python 3.12, somente biblioteca padrão. Node 20+ para testes dos cálculos da i
 
 ```sh
 python scripts/build_stats.py
+python scripts/build_overview.py
+node scripts/build_dashboard.mjs
 python -m unittest discover -s tests -v
-node --test tests/math.test.js
+node --test tests/*.test.js
 python scripts/update_data.py
 # Complemento a partir de recuperação real da tabela pública:
 python scripts/import_verified.py CAMINHO_SNAPSHOT.json
 ```
 
-Para abrir em ambiente próprio, servir a pasta por HTTP; módulos JavaScript e fetch não funcionam de forma confiável por `file://`.
+`index.html` e `dashboard.js` são gerados: editar `dashboard.template.html`, `dashboard-core.js` e `dashboard-client.js`, depois executar `npm run build`. O build não busca novos dados. O histórico compacto está em `data/overview.json`. A tarefa diária continua publicando somente os feeds; a página os consulta sem precisar regenerar o HTML. Sem JavaScript ou sem conexão, a data da cópia preservada continua explícita.
+
+Para abrir em ambiente próprio, servir a pasta por HTTP. A página principal já contém os gráficos, mas consultas de dados e módulos da página de análises requerem HTTP.
 
 ## Créditos
 
