@@ -1,0 +1,59 @@
+[
+  {
+    "station": "Cáceres",
+    "date": "2026-10-11",
+    "level_m": 1.15,
+    "variation_m": 0.08,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "11/10/2026",
+      "Cáceres",
+      "1,15 M;",
+      "+0,08 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-10-11T12:12:47.970Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "7bba42e27d0cf1a5152165cff9f5dc9c887bfa4cb70d02746bcdfd371763e62a"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-10-11",
+    "level_m": 1.22,
+    "variation_m": 0.02,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "11/10/2026",
+      "Ladário",
+      "1,22 M;",
+      "+0,02 M",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-10-11T12:12:47.970Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "7bba42e27d0cf1a5152165cff9f5dc9c887bfa4cb70d02746bcdfd371763e62a"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-10-11",
+    "level_m": 2.87,
+    "variation_m": -0.02,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "11/10/2026",
+      "Porto Murtinho",
+      "2,87 M;",
+      "-0,02 M",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-10-11T12:12:47.970Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "7bba42e27d0cf1a5152165cff9f5dc9c887bfa4cb70d02746bcdfd371763e62a"
+  }
+]

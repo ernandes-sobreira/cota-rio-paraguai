@@ -1,10 +1,13 @@
 import sys
 import unittest
+import tempfile
+from datetime import datetime, timezone
 from datetime import date
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from update_data import parse_html, merge_records, number
 from build_stats import quantile, trend
+from import_verified import import_snapshot
 
 def table(day='11/10/2026', level='1,15 M;', variation='+ 0,08 M;'):
     return '<table>'+''.join(f'<tr><td>{day}</td><td><b>{s}</b></td><td>{level}</td><td>{variation}</td><td>Fonte: Marinha<br>Observação</td></tr>' for s in ['Cáceres','Ladário','Porto Murtinho'])+'</table>'
@@ -39,5 +42,18 @@ class StatsTests(unittest.TestCase):
         t=trend([(2000+i,1) for i in range(10)])
         self.assertEqual(t['mk_p_uncorrected'],1);self.assertIsNone(t['r2'])
         self.assertIsNone(trend([(2000,1)]))
+
+class VerifiedImportTests(unittest.TestCase):
+    def test_verified_roundtrip_and_old_snapshot(self):
+        snapshot=dict(source_url='https://www.marinha.mil.br/chn-6/',retrieved_at=datetime.now(timezone.utc).isoformat(),retrieval_method='verified_public_web',rows=[['11/10/2026',s,'1,15 M;','', 'Fonte pública'] for s in ['Cáceres','Ladário','Porto Murtinho']])
+        with tempfile.TemporaryDirectory() as tmp:
+            result=import_snapshot(snapshot,Path(tmp))
+            self.assertEqual(result['stations'][0]['level_m'],1.15)
+            self.assertIsNone(result['stations'][0]['variation_m'])
+            self.assertEqual(result['stations'][0]['collection_method'],'verified_public_web')
+            self.assertNotIn('source_sha256',result['stations'][0])
+            for r in snapshot['rows']:r[0]='10/10/2026';r[2]='1,00 M;'
+            result=import_snapshot(snapshot,Path(tmp))
+            self.assertTrue(all(r['date']=='2026-10-11' for r in result['stations']))
 
 if __name__=='__main__':unittest.main()

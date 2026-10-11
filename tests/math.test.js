@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {parseCSV,fit,aggregate,annualTrend,describe} from '../math.js';
+test('missing values stay missing, real zero retained',()=>{const r=parseCSV('station,date_str,cota_m\nA,2020-01-01,0\nA,2020-01-02,\nA,2020-01-03,-.2');assert.equal(r.length,2);assert.equal(r[0].value,0);assert.equal(describe(r,'2020-01-01','2020-01-03').expected,3)});
+test('regression uses elapsed time',()=>{const f=fit([{x:0,y:1},{x:2,y:5},{x:8,y:17}]);assert.equal(f.slope,2);assert.equal(f.r2,1)});
+test('annual coverage accounts for leap year',()=>{const r=aggregate([{date:'2020-01-01',value:0},{date:'2020-12-31',value:2}],'annual');assert.equal(r[0].value,1);assert.equal(r[0].coverage,2/366)});
+test('JS and Python agree on actual historical trends',()=>{const data=JSON.parse(readFileSync(new URL('../data/statistics.json',import.meta.url)));for(const s of Object.values(data.stations)){for(const metric of ['mean','min','max']){const f=annualTrend(s.annual,metric,1966,2025),p=s.trends[metric];assert.equal(f.n,p.n);assert.ok(Math.abs(f.slope-p.slope_m_year)<1e-10);assert.ok(Math.abs(f.sen-p.sen_m_year)<1e-10);assert.ok(Math.abs(f.r2-p.r2)<1e-10)}}});

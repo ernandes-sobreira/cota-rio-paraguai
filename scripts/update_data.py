@@ -9,6 +9,7 @@ import sys
 import time
 import unicodedata
 import urllib.request
+import urllib.error
 from datetime import date, datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
@@ -110,7 +111,7 @@ def main():
                 records[i] = prior
         merged = merge_records(old, records)
         latest = [max((r for r in merged if r['station'] == s), key=lambda r: r['date']) for s in STATIONS.values()]
-        status.update(fetch_status='ok', last_success_at=now, stations=latest, error=None)
+        status.update(fetch_status='ok', last_success_at=now, last_direct_attempt_at=now, direct_status='ok', stations=latest, error=None)
         dump(archive_path, merged)
         # Git provides the complete revision trail; one raw table snapshot per collection date.
         dump(data / 'snapshots' / (now[:10] + '.json'), dict(source_url=SOURCE, fetched_at=now, sha256=sha, rows=[r['raw_cells'] for r in records]))
@@ -121,9 +122,13 @@ def main():
         dump(latest_path, status)
         print('Coleta validada:', ', '.join(f"{r['station']} {r['date']} {r['level_m']:.2f} m" for r in latest))
     except Exception as exc:
-        status.update(fetch_status='error', error=f'{type(exc).__name__}: {exc}')
+        status.update(fetch_status='error', last_direct_attempt_at=now, direct_status='unavailable', error=f'{type(exc).__name__}: {exc}')
         dump(latest_path, status)
         print('Falha na coleta; última medição preservada:', str(exc), file=sys.stderr)
+        # Public table can reject direct clients; the verified-public-web schedule is independent.
+        if isinstance(exc, urllib.error.HTTPError) and exc.code == 403:
+            print('::warning::Fonte recusou coleta direta (403). Complemento público verificado permanece independente.')
+            return 0
         return 1
     return 0
 
