@@ -1,0 +1,45 @@
+name: Atualizar cotas da Marinha
+on:
+  schedule:
+    # UTC: 07:20, 08:20, 10:20 e 14:20 em Mato Grosso (UTC-4).
+    - cron: '20 11,12,14,18 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/atualizar-cotas.yml'
+permissions:
+  contents: write
+concurrency:
+  group: atualizar-cotas
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar parser e estatísticas
+        run: python -m unittest discover -s tests -v
+      - name: Coletar tabela pública oficial
+        id: collect
+        continue-on-error: true
+        run: python scripts/update_data.py
+      - name: Registrar observações e situação da coleta
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/
+          if ! git diff --cached --quiet; then
+            git commit -m 'data: atualizar leituras e verificação da Marinha'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Sinalizar indisponibilidade da fonte
+        if: steps.collect.outcome == 'failure'
+        run: exit 1
