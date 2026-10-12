@@ -2,3 +2,6 @@ station,date,cota_m,variacao_publicada_m,source_url,collected_at,observation
 Cáceres,2026-10-11,1.15,0.08,https://www.marinha.mil.br/chn-6/,2026-10-11T12:12:47.970Z,FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);
 Ladário,2026-10-11,1.22,0.02,https://www.marinha.mil.br/chn-6/,2026-10-11T12:12:47.970Z,FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;
 Porto Murtinho,2026-10-11,2.87,-0.02,https://www.marinha.mil.br/chn-6/,2026-10-11T12:12:47.970Z,FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;
+Cáceres,2026-10-12,1.16,0.01,https://www.marinha.mil.br/chn-6/,2026-10-12T14:03:24+00:00,FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);
+Ladário,2026-10-12,1.22,0,https://www.marinha.mil.br/chn-6/,2026-10-12T14:03:24+00:00,FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;
+Porto Murtinho,2026-10-12,2.86,-0.01,https://www.marinha.mil.br/chn-6/,2026-10-12T14:03:24+00:00,FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;
