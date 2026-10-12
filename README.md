@@ -31,7 +31,7 @@ A recuperação oficial conserva somente `MediaDiaria=1` e `NivelConsistencia=1`
 
 ## Atualização automática
 
-GitHub Actions consulta as fontes às 07h20, 08h20, 10h20 e 14h20 (MT, UTC−4), sujeito a atrasos. A coleta ANA foi executada com sucesso nesta revisão. O acesso direto à Marinha recebe 403; há uma tarefa ChatGPT complementar ativa às 08h e 14h, com início em 12/10/2026, que consulta a página pública e publica o feed validado. Não se garante execução futura: depende da disponibilidade e das conexões. [Contrato e horários](ATUALIZACAO.md).
+GitHub Actions consulta as fontes às 07h20, 08h20, 10h20 e 14h20 (MT, UTC−4), sujeito a atrasos. A coleta ANA foi executada com sucesso nesta revisão. O acesso direto à Marinha recebe 403; foi documentada uma tarefa ChatGPT complementar às 08h e 14h, com início previsto em 12/10/2026, mas sua execução ainda não foi confirmada nesta revisão. O coletor agora sinaliza o 403 como falha e preserva a última leitura. Não se garante execução futura: depende da disponibilidade e das conexões. [Contrato e horários](ATUALIZACAO.md).
 
 A interface consulta o feed ao abrir, ao atualizar e a cada 15 minutos visível. O feed próprio é publicado em `raw.githubusercontent.com/ernandes-sobreira/cota-rio-paraguai/main/data/`; não é uma API oficial da Marinha. Erros preservam as observações e não mudam sua data. A ANA sinaliza falhas parciais no workflow. Arquivos não dependem de um novo build do Pages para atualizar no navegador.
 

@@ -39,6 +39,22 @@ jobs:
         id: ana
         continue-on-error: true
         run: python scripts/update_telemetry.py --recent --output data/telemetry-daily.json --csv data/telemetry-daily.csv
+      - name: Resumir verificação e datas das observações
+        if: always()
+        run: |
+          python - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          feed = json.loads(Path('data/latest.json').read_text())
+          rows = ['## Marinha / CHN-6',
+                  'Estado da consulta: ' + feed.get('fetch_status', 'desconhecido'),
+                  'Última tentativa: ' + str(feed.get('last_direct_attempt_at', 'não confirmada')),
+                  'Última consulta bem-sucedida: ' + str(feed.get('last_success_at', 'não confirmada'))]
+          rows += [r['station'] + ': ' + r['date'] + ' · ' + str(r['level_m']) + ' m' for r in feed.get('stations', [])]
+          if feed.get('error'): rows.append('Falha: ' + feed['error'])
+          rows.append('Data da medição não é data da consulta. Este job não confirma a execução de um complemento externo.')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out: out.write('\n\n'.join(rows) + '\n')
+          PYTHON
       - name: Registrar observações e situação da coleta
         run: |
           git config user.name 'github-actions[bot]'

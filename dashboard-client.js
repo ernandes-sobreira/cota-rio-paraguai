@@ -6,9 +6,7 @@ let graphCache={},overlayGraph=null,marinhaArchive=telemetry.marinhaArchive||[];
 const sourceAudit=JSON.parse(document.getElementById('source-audit-seed').textContent);
 function validFeed(feed){return validMarinhaFeed(feed);}
 function validTelemetry(feed){return feed&&feed.unit==='m'&&Number.isFinite(Date.parse(feed.fetched_at))&&STATIONS.every(name=>feed.stations&&feed.stations[name]&&Array.isArray(feed.stations[name].daily)&&feed.stations[name].daily.every(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday()&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max)&&r.min<=r.mean&&r.mean<=r.max&&r.n>0));}
-function rank(feed){return [Date.parse(feed.last_success_at)||0,Date.parse(feed.checked_at)||0];}
-function newer(a,b){const x=rank(a),y=rank(b);return x[0]>y[0]||(x[0]===y[0]&&x[1]>y[1]);}
-function canReplace(feed){return validFeed(feed)&&newer(feed,latest)&&STATIONS.every(name=>feed.stations.find(s=>s.station===name).date>=latest.stations.find(s=>s.station===name).date);}
+function canReplace(feed){return canReplaceMarinhaFeed(feed,latest);}
 function current(name){return latest.stations.find(s=>s.station===name);}
 function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: losangos são leituras pontuais de boletins SGB, sem ligar os dias ausentes.';}
 function render(){
@@ -65,7 +63,7 @@ async function update(){if(busy||typeof fetch!=='function')return;busy=true;refr
  const [feeds,records]=await Promise.all([Promise.all(['data/latest.json',base+'latest.json'].map(url=>fetchJSON(url+'?t='+stamp,validFeed).catch(()=>null))),Promise.all(['data/telemetry-daily.json',base+'telemetry-daily.json'].map(url=>fetchJSON(url+'?t='+stamp,validTelemetry).catch(()=>null)))]);
  let changed=false;feeds.filter(Boolean).forEach(feed=>{if(canReplace(feed)){latest=feed;changed=true;}});records.filter(Boolean).forEach(feed=>{if(Date.parse(feed.checked_at||feed.fetched_at)>Date.parse(telemetry.checked_at||telemetry.fetched_at)&&feed.year>=telemetry.year){feed.supplement=telemetry.supplement;telemetry=feed;changed=true;}});
  await archiveLoad;render();if(changed){try{localStorage.setItem('cota-paraguai-v2-last',JSON.stringify(latest));localStorage.setItem('cota-paraguai-v2-ana',JSON.stringify(telemetry));}catch{}}
- status.textContent=records.some(Boolean)?'Dados ANA consultados'+(telemetry.status==='partial_error'?' · consulta parcial':telemetry.status==='error'?' · última coleta falhou':''): 'Cópia ANA preservada · sem conexão';
+ status.textContent=(feeds.some(Boolean)||records.some(Boolean)?'Arquivos publicados consultados':'Cópia preservada · sem conexão')+' · '+marinhaFreshness(latest).text+(latest.fetch_status==='error'?' · coleta Marinha falhou':'')+' · ANA: última coleta '+timeBR(telemetry.fetched_at)+(telemetry.status==='partial_error'?' · consulta parcial':telemetry.status==='error'?' · coleta falhou':'');
  status.title='Marinha verificada em '+timeBR(latest.last_success_at)+(latest.fetch_status==='error'?'. Consulta direta indisponível; última leitura preservada.':'');
  }catch{status.textContent='Cópia preservada · sem conexão';}finally{busy=false;refresh.disabled=false;}}
  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;render();});

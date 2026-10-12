@@ -3,7 +3,7 @@
 Repositório: `ernandes-sobreira/cota-rio-paraguai`, branch `main`.
 Fonte autorizada: https://www.marinha.mil.br/chn-6/ . Estações: Cáceres, Ladário, Porto Murtinho.
 
-O coletor direto do GitHub Actions recebeu HTTP 403 em 11/10/2026. Não existe chave de API da Marinha configurada nem necessária para consultar a tabela pública. O complemento é uma automação agendada do ChatGPT que lê a página oficial e registra as células verificadas via API do GitHub. Não contornar autenticação, bloqueios ou controles de acesso. Se a página não estiver acessível pela leitura pública, preservar dados e relatar o impedimento.
+O coletor direto do GitHub Actions recebeu HTTP 403 em 11/10/2026. Não existe chave de API da Marinha configurada nem necessária para consultar a tabela pública. O complemento previsto é uma tarefa do ChatGPT que lê a página oficial e registra as células verificadas via API do GitHub. Sua execução de 12/10/2026 não foi confirmada nesta revisão; a existência deste contrato não comprova que a tarefa executou. Não contornar autenticação, bloqueios ou controles de acesso. Se a página não estiver acessível pela leitura pública, preservar dados e relatar o impedimento.
 
 ## Execução do complemento
 
@@ -16,14 +16,22 @@ O coletor direto do GitHub Actions recebeu HTTP 403 em 11/10/2026. Não existe c
 
 ## Agendamento direto
 
-`.github/workflows/atualizar-cotas.yml`: 07h20, 08h20, 10h20 e 14h20 em MT (UTC−4). Horários são de consulta, não horários certificados da medição; o GitHub pode atrasar. `GITHUB_TOKEN` automático com `contents: write`, sem token pessoal exposto. Erro 403 é registrado como indisponibilidade do caminho direto. Outros erros de validação continuam a falhar o workflow.
+`.github/workflows/atualizar-cotas.yml`: 07h20, 08h20, 10h20 e 14h20 em MT (UTC−4). Horários são de consulta, não horários certificados da medição; o GitHub pode atrasar. `GITHUB_TOKEN` automático com `contents: write`, sem token pessoal exposto. Erro 403 é registrado como indisponibilidade do caminho direto e retorna saída não zero, sem repetir a requisição recusada. Os dados e o estado de erro são registrados antes de o workflow sinalizar falha. Timeouts e erros transitórios recebem no máximo três tentativas; erros de validação também falham. O resumo da execução mostra separadamente as datas das medições e das consultas.
 
 O workflow também coleta a API pública da ANA com `scripts/update_telemetry.py --recent`, gerando `data/telemetry-daily.json` e `.csv`. Essa coleta é independente do complemento ChatGPT descrito acima: a tarefa ChatGPT continua alterando somente os arquivos Marinha, nunca os arquivos ANA ou SGB. A API ANA consultada não exige chave. Seus erros preservam as observações anteriores e são sinalizados no workflow.
 
 A base antiga vai até 26/12/2025 e foi mantida apenas para auditoria. A V2.3 usa o histórico recuperado da ANA de 1966 a 31/12/2025 em data/history-ana.csv, com procedência em data/history-provenance.json. O arquivo incremental Marinha começa em 11/10/2026; o conjunto ANA foi recuperado desde 01/01/2026. Cobertura e lacunas estão em `DADOS_2026.md`. Não unir as séries para inferência sem verificar datum, ponto de medição e protocolo de observação.
 
-A tarefa complementar foi verificada ativa na auditoria de 11/10/2026, com início em 12/10/2026 e horários 08h e 14h (America/Campo_Grande). Nenhuma execução futura é certificada antecipadamente. O coletor ANA guarda respostas recentes compactadas em data/snapshots/ana-rolling/; erros completos preservam fetched_at e registram checked_at/status, erros parciais retornam saída não zero.
+A auditoria de 11/10/2026 registrou uma tarefa complementar prevista para iniciar em 12/10/2026 às 08h e 14h (America/Campo_Grande). Na revisão de 12/10/2026, seu cadastro e sua execução não puderam ser confirmados. Não foi criada tarefa duplicada. Nenhuma execução futura é certificada antecipadamente. O coletor ANA guarda respostas recentes compactadas em data/snapshots/ana-rolling/; erros completos preservam fetched_at e registram checked_at/status, erros parciais retornam saída não zero.
 
 ## Conferência contínua V2.4
 
 O painel calcula automaticamente a diferença Marinha menos média ANA somente para datas exatamente coincidentes, a cada atualização dos feeds. Ausência ANA não vira zero e não usa último dia antigo. Os registros Marinha incrementais alimentam pontos separados nas curvas, sem entrar nas estatísticas ANA. A comparação anual prioriza o arquivo incremental Marinha e depois as tabelas oficiais recuperadas de 2025 em `data/history-marinha.json` (incorporadas no overview). `data/source-audit.json/.csv` é uma auditoria histórica fixa de 2025, não a conferência viva do dia; não deve receber datas atuais pela tarefa diária. Os arquivos e permissões autorizados para a tarefa diária permanecem os mesmos.
+
+## Revisão de 12/10/2026
+
+- O cron já correspondia aos quatro horários documentados. Não foi alterado: até a consulta de 12/10 às 13h57 UTC não havia execução do dia; as últimas execuções agendadas foram em 11/10 às 17h42 e 22h05 UTC. A causa externa do atraso não foi determinada.
+- O 403 deixou de ser sucesso silencioso. A mudança sinaliza o impedimento, mas não remove o bloqueio da fonte. Não foram alteradas credenciais, permissões de acesso ou usados caminhos para contorná-lo.
+- O painel mostra leituras anteriores ao dia corrente e tentativas previstas ainda não confirmadas. Baixar um JSON publicado não é apresentado como uma consulta nova à ANA ou à Marinha.
+- Importações atrasadas não apagam falhas posteriores, não regridem horários, correções ou snapshots mais novos e não certificam leituras ausentes na tabela recuperada. `last_verified_web_at` identifica uma consulta pública registrada, sem provar execução automática.
+- Os testes de PR usam somente fixtures locais e não publicam dados. Para testar: `python -m unittest discover -s tests -v`, `npm test`, `npm run build`, `node --check dashboard.js`.

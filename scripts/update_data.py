@@ -82,8 +82,14 @@ def dump(path, data):
     temp.write_text(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False) + '\n', encoding='utf-8')
     temp.replace(path)
 
-def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--html', type=Path); args = ap.parse_args()
+def freshness(records, today=None):
+    today = today or datetime.now(ZoneInfo('America/Campo_Grande')).date()
+    by_station = {r['station']: r['date'] for r in records}
+    stale = [name for name in STATIONS.values() if by_station.get(name) != today.isoformat()]
+    return dict(observation_status='stale' if stale else 'current', stale_stations=stale)
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(); ap.add_argument('--html', type=Path); args = ap.parse_args(argv)
     now = datetime.now(timezone.utc).isoformat(timespec='seconds')
     data = ROOT / 'data'
     latest_path = data / 'latest.json'; archive_path = data / 'daily.json'
@@ -100,7 +106,11 @@ def main():
                     with urllib.request.urlopen(req, timeout=45) as response:
                         body = response.read(3_000_000)
                     break
-                except Exception:
+                except urllib.error.HTTPError as exc:
+                    # Do not retry an access refusal; no alternate route or credentials.
+                    if 400 <= exc.code < 500 or attempt == 2: raise
+                    time.sleep(3 * (attempt + 1))
+                except (urllib.error.URLError, TimeoutError):
                     if attempt == 2: raise
                     time.sleep(3 * (attempt + 1))
         records = parse_html(body.decode('utf-8', errors='replace'))
@@ -116,7 +126,10 @@ def main():
                 records[i] = prior
         merged = merge_records(old, records)
         latest = [max((r for r in merged if r['station'] == s), key=lambda r: r['date']) for s in STATIONS.values()]
-        status.update(fetch_status='ok', last_success_at=now, last_direct_attempt_at=now, direct_status='ok', stations=latest, error=None)
+        observed_days = {r['station']: r['date'] for r in records}
+        if any(observed_days[r['station']] < r['date'] for r in latest):
+            raise ValueError('Fonte retornou observações anteriores à base preservada; consulta não valida as leituras mais recentes.')
+        status.update(fetch_status='ok', last_success_at=now, last_direct_attempt_at=now, direct_status='ok', stations=latest, error=None, **freshness(latest))
         dump(archive_path, merged)
         # Git provides the complete revision trail; one raw table snapshot per collection date.
         (data / 'snapshots').mkdir(parents=True,exist_ok=True)
@@ -129,13 +142,12 @@ def main():
         dump(latest_path, status)
         print('Coleta validada:', ', '.join(f"{r['station']} {r['date']} {r['level_m']:.2f} m" for r in latest))
     except Exception as exc:
-        status.update(fetch_status='error', last_direct_attempt_at=now, direct_status='unavailable', error=f'{type(exc).__name__}: {exc}')
+        status.update(fetch_status='error', last_direct_attempt_at=now, direct_status='unavailable', error=f'{type(exc).__name__}: {exc}', **freshness(previous.get('stations', [])))
         dump(latest_path, status)
         print('Falha na coleta; última medição preservada:', str(exc), file=sys.stderr)
-        # Public table can reject direct clients; the verified-public-web schedule is independent.
+        # A successful run must never hide a refused collection.
         if isinstance(exc, urllib.error.HTTPError) and exc.code == 403:
-            print('::warning::Fonte recusou coleta direta (403). Complemento público verificado permanece independente.')
-            return 0
+            print('::error::Fonte recusou coleta direta (403); última leitura preservada. Nenhum complemento foi confirmado nesta execução.')
         return 1
     return 0
 
