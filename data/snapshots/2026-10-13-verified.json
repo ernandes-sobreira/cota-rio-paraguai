@@ -1,0 +1,28 @@
+{
+  "source_url": "https://www.marinha.mil.br/chn-6/",
+  "retrieved_at": "2026-10-13T12:04:55+00:00",
+  "retrieval_method": "verified_public_web",
+  "rows": [
+    [
+      "13/10/2026",
+      "Cáceres",
+      "1,27 M;",
+      "+0,11 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    [
+      "13/10/2026",
+      "Ladário",
+      "1,23 M;",
+      "+0,01M;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    [
+      "13/10/2026",
+      "Porto Murtinho",
+      "2,83 M;",
+      "-0,03 M",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ]
+  ]
+}
