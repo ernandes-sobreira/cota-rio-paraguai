@@ -1,69 +1,69 @@
 {
   "schema_version": 2,
   "source_url": "https://www.marinha.mil.br/chn-6/",
-  "checked_at": "2026-10-14T15:51:26+00:00",
-  "last_success_at": "2026-10-13T12:04:55+00:00",
-  "fetch_status": "error",
+  "checked_at": "2026-10-14T18:04:37+00:00",
+  "last_success_at": "2026-10-14T18:04:37+00:00",
+  "fetch_status": "verified_web",
   "stations": [
     {
       "station": "Cáceres",
-      "date": "2026-10-13",
-      "level_m": 1.27,
-      "variation_m": 0.11,
+      "date": "2026-10-14",
+      "level_m": 1.36,
+      "variation_m": 0.09,
       "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
       "source_url": "https://www.marinha.mil.br/chn-6/",
       "measurement_time": null,
       "raw_cells": [
-        "13/10/2026",
+        "14/10/2026",
         "Cáceres",
-        "1,27 M;",
-        "+0,11 M;",
+        "1,36 M;",
+        "+0,09 M;",
         "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
       ],
-      "collected_at": "2026-10-13T12:04:55+00:00",
+      "collected_at": "2026-10-14T18:04:37+00:00",
       "collection_method": "verified_public_web",
-      "snapshot_sha256": "1420f439359397dbecfa1d7572e698008cce5d61985f4481036bf2b77dbe3d44"
+      "snapshot_sha256": "9bf7c987d960a89b6b23f431e2d72b08211b5221a7b80505093b3756057f82d5"
     },
     {
       "station": "Ladário",
-      "date": "2026-10-13",
-      "level_m": 1.23,
+      "date": "2026-10-14",
+      "level_m": 1.24,
       "variation_m": 0.01,
       "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
       "source_url": "https://www.marinha.mil.br/chn-6/",
       "measurement_time": null,
       "raw_cells": [
-        "13/10/2026",
+        "14/10/2026",
         "Ladário",
-        "1,23 M;",
+        "1,24 M;",
         "+0,01M;",
         "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
       ],
-      "collected_at": "2026-10-13T12:04:55+00:00",
+      "collected_at": "2026-10-14T18:04:37+00:00",
       "collection_method": "verified_public_web",
-      "snapshot_sha256": "1420f439359397dbecfa1d7572e698008cce5d61985f4481036bf2b77dbe3d44"
+      "snapshot_sha256": "9bf7c987d960a89b6b23f431e2d72b08211b5221a7b80505093b3756057f82d5"
     },
     {
       "station": "Porto Murtinho",
-      "date": "2026-10-13",
+      "date": "2026-10-14",
       "level_m": 2.83,
-      "variation_m": -0.03,
+      "variation_m": 0.0,
       "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
       "source_url": "https://www.marinha.mil.br/chn-6/",
       "measurement_time": null,
       "raw_cells": [
-        "13/10/2026",
+        "14/10/2026",
         "Porto Murtinho",
         "2,83 M;",
-        "-0,03 M",
+        "ESTACIONADO;",
         "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
       ],
-      "collected_at": "2026-10-13T12:04:55+00:00",
+      "collected_at": "2026-10-14T18:04:37+00:00",
       "collection_method": "verified_public_web",
-      "snapshot_sha256": "1420f439359397dbecfa1d7572e698008cce5d61985f4481036bf2b77dbe3d44"
+      "snapshot_sha256": "9bf7c987d960a89b6b23f431e2d72b08211b5221a7b80505093b3756057f82d5"
     }
   ],
-  "error": "HTTPError: HTTP Error 403: Forbidden",
+  "error": null,
   "timezone": "America/Campo_Grande",
   "schedule_local": [
     "07:20",
@@ -73,11 +73,7 @@
   ],
   "last_direct_attempt_at": "2026-10-14T15:51:26+00:00",
   "direct_status": "unavailable",
-  "observation_status": "stale",
-  "stale_stations": [
-    "Cáceres",
-    "Ladário",
-    "Porto Murtinho"
-  ],
-  "last_verified_web_at": "2026-10-13T12:04:55+00:00"
+  "observation_status": "current",
+  "stale_stations": [],
+  "last_verified_web_at": "2026-10-14T18:04:37+00:00"
 }
