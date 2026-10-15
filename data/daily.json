@@ -226,5 +226,62 @@
     "collected_at": "2026-10-14T18:04:37+00:00",
     "collection_method": "verified_public_web",
     "snapshot_sha256": "9bf7c987d960a89b6b23f431e2d72b08211b5221a7b80505093b3756057f82d5"
+  },
+  {
+    "station": "Cáceres",
+    "date": "2026-10-15",
+    "level_m": 1.36,
+    "variation_m": 0.0,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "15/10/2026",
+      "Cáceres",
+      "1,36 M;",
+      "ESTACIONADO;",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-10-15T18:04:20+00:00",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "f47ce8e7d5440515ef541be95afcf0049c705ce08f5c37388b843ab5df8fe994"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-10-15",
+    "level_m": 1.26,
+    "variation_m": 0.02,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "15/10/2026",
+      "Ladário",
+      "1,26 M;",
+      "+0,02 M;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-10-15T18:04:20+00:00",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "f47ce8e7d5440515ef541be95afcf0049c705ce08f5c37388b843ab5df8fe994"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-10-15",
+    "level_m": 2.86,
+    "variation_m": 0.03,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "15/10/2026",
+      "Porto Murtinho",
+      "2,86 M;",
+      "+0,03 M",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-10-15T18:04:20+00:00",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "f47ce8e7d5440515ef541be95afcf0049c705ce08f5c37388b843ab5df8fe994"
   }
 ]
