@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "source_url": "https://www.marinha.mil.br/chn-6/",
-  "checked_at": "2026-10-16T21:20:08+00:00",
+  "checked_at": "2026-10-17T14:15:32+00:00",
   "last_success_at": "2026-10-16T17:56:47+00:00",
   "fetch_status": "error",
   "stations": [
@@ -71,9 +71,13 @@
     "10:20",
     "14:20"
   ],
-  "last_direct_attempt_at": "2026-10-16T21:20:08+00:00",
+  "last_direct_attempt_at": "2026-10-17T14:15:32+00:00",
   "direct_status": "unavailable",
-  "observation_status": "current",
-  "stale_stations": [],
+  "observation_status": "stale",
+  "stale_stations": [
+    "Cáceres",
+    "Ladário",
+    "Porto Murtinho"
+  ],
   "last_verified_web_at": "2026-10-16T17:56:47+00:00"
 }
