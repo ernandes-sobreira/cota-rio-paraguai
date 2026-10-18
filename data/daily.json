@@ -384,7 +384,7 @@
     "date": "2026-10-17",
     "level_m": 3.0,
     "variation_m": 0.07,
-    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;AGUARDANDO DISPONIBILIDADE DOS DADOS DO DIA 18/10/2026;",
     "source_url": "https://www.marinha.mil.br/chn-6/",
     "measurement_time": null,
     "raw_cells": [
@@ -392,10 +392,48 @@
       "Porto Murtinho",
       "3,00 M;",
       "+0,07 M",
-      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;AGUARDANDO DISPONIBILIDADE DOS DADOS DO DIA 18/10/2026;"
     ],
-    "collected_at": "2026-10-17T18:05:32+00:00",
+    "collected_at": "2026-10-18T11:57:05+00:00",
     "collection_method": "verified_public_web",
-    "snapshot_sha256": "a0bfaa39143a923b5eb545ec6c6a7182cec24ee1b1fcabab6b44bc42869b519a"
+    "snapshot_sha256": "2f18e934d88711a70e7aad8d7122e4b0bda31fec69d01a78f1d0d2df5525b948"
+  },
+  {
+    "station": "Cáceres",
+    "date": "2026-10-18",
+    "level_m": 1.23,
+    "variation_m": -0.05,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "18/10/2026",
+      "Cáceres",
+      "1,23 M;",
+      "- 0,05 M",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-10-18T11:57:05+00:00",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "2f18e934d88711a70e7aad8d7122e4b0bda31fec69d01a78f1d0d2df5525b948"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-10-18",
+    "level_m": 1.27,
+    "variation_m": -0.01,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "18/10/2026",
+      "Ladário",
+      "1,27 M;",
+      "-0,01 M;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-10-18T11:57:05+00:00",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "2f18e934d88711a70e7aad8d7122e4b0bda31fec69d01a78f1d0d2df5525b948"
   }
 ]
