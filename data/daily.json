@@ -435,5 +435,24 @@
     "collected_at": "2026-10-18T11:57:05+00:00",
     "collection_method": "verified_public_web",
     "snapshot_sha256": "2f18e934d88711a70e7aad8d7122e4b0bda31fec69d01a78f1d0d2df5525b948"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-10-18",
+    "level_m": 3.0,
+    "variation_m": 0.06,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "18/10/2026",
+      "Porto Murtinho",
+      "3,00 M;",
+      "+0,06 M",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-10-18T17:56:43+00:00",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "bdfdc7a2cf499d63a88f34d4dba85ca9db8fe6b4d0d4ee81e726e4285b39cf73"
   }
 ]
