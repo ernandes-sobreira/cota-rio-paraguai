@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "source_url": "https://www.marinha.mil.br/chn-6/",
-  "checked_at": "2026-10-26T17:25:56+00:00",
+  "checked_at": "2026-10-26T22:45:15+00:00",
   "last_success_at": "2026-10-26T12:10:14Z",
   "fetch_status": "error",
   "stations": [
@@ -71,7 +71,7 @@
     "10:20",
     "14:20"
   ],
-  "last_direct_attempt_at": "2026-10-26T17:25:56+00:00",
+  "last_direct_attempt_at": "2026-10-26T22:45:15+00:00",
   "direct_status": "unavailable",
   "observation_status": "current",
   "stale_stations": [],
