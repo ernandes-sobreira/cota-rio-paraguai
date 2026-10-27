@@ -8,14 +8,19 @@
 const BASE='https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas';
 const code=process.argv[2] || '66070004';
 if(!/^\d{7,10}$/.test(code)){console.error('Código de estação inválido');process.exit(2);}
-const id=process.env.ANA_IDENTIFICADOR, password=process.env.ANA_SENHA;
-if(!id||!password){console.error('Defina ANA_IDENTIFICADOR e ANA_SENHA como secrets do ambiente, nunca no código.');process.exit(2);}
+const id=(process.env.ANA_IDENTIFICADOR||'').trim().replace(/[.\-\s]/g,'');
+const password=(process.env.ANA_SENHA||'').replace(/\r?\n$/,'').trim();
+if(!/^\d{11}$/.test(id)){console.error('ANA_IDENTIFICADOR inválido: esperado CPF com 11 dígitos. Confira o Secret, sem compartilhar o valor.');process.exit(2);}
+if(!password){console.error('ANA_SENHA ausente. Confira o Secret, sem compartilhar o valor.');process.exit(2);}
 const request=async(url,headers,stage)=>{
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),20000);
   try{
     const resp=await fetch(url,{headers,signal:controller.signal,redirect:'error'});
-    if(!resp.ok)throw new Error('ANA '+stage+' HTTP '+resp.status);
+    if(!resp.ok){
+      if(resp.status===401 && stage==='autenticação') throw new Error('ANA autenticação HTTP 401: identificador/senha não aceitos pelo serviço. Confira os Secrets e teste no Swagger oficial. Nenhum token foi obtido.');
+      throw new Error('ANA '+stage+' HTTP '+resp.status);
+    }
     const json=await resp.json();
     if(json?.code && Number(json.code)>=400)throw new Error('API ANA retornou erro '+json.code);
     return json;
