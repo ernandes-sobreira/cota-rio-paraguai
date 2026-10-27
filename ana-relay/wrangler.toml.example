@@ -1,0 +1,8 @@
+name = "ana-hidroweb-relay"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+[[kv_namespaces]]
+binding = "ANA_CACHE"
+id = "SUBSTITUIR_POR_ID_KV"
+[triggers]
+crons = ["17 12 * * *"]
