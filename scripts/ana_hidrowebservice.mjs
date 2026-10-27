@@ -10,19 +10,19 @@ const code=process.argv[2] || '66070004';
 if(!/^\d{7,10}$/.test(code)){console.error('Código de estação inválido');process.exit(2);}
 const id=process.env.ANA_IDENTIFICADOR, password=process.env.ANA_SENHA;
 if(!id||!password){console.error('Defina ANA_IDENTIFICADOR e ANA_SENHA como secrets do ambiente, nunca no código.');process.exit(2);}
-const request=async(url,headers)=>{
+const request=async(url,headers,stage)=>{
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),20000);
   try{
     const resp=await fetch(url,{headers,signal:controller.signal,redirect:'error'});
-    if(!resp.ok)throw new Error('ANA HTTP '+resp.status);
+    if(!resp.ok)throw new Error('ANA '+stage+' HTTP '+resp.status);
     const json=await resp.json();
     if(json?.code && Number(json.code)>=400)throw new Error('API ANA retornou erro '+json.code);
     return json;
   }finally{clearTimeout(timer);}
 };
 try{
-  const auth=await request(BASE+'/OAUth/v1',{'Identificador':id,'Senha':password,'Accept':'application/json'});
+  const auth=await request(BASE+'/OAUth/v1',{'Identificador':id,'Senha':password,'Accept':'application/json'},'autenticação');
   const token=auth?.items?.tokenautenticacao ?? auth?.items?.tokenAutenticacao ?? auth?.tokenautenticacao;
   if(typeof token!=='string'||!token)throw new Error('Resposta de autenticação não reconhecida');
   const query=new URLSearchParams({
@@ -34,7 +34,7 @@ try{
   const data=await request(BASE+'/HidroinfoanaSerieTelemetricaAdotada/v1?'+query.toString(),{
     'Authorization':'Bearer '+token,
     'Accept':'application/json'
-  });
+  },'consulta da série');
   const records=Array.isArray(data?.items)?data.items:[];
   // Não imprimir token, CPF, senha, cabeçalhos, ou payload bruto nos logs.
   console.log(JSON.stringify({source:'ANA HidroWebService',endpoint:'HidroinfoanaSerieTelemetricaAdotada/v1',station_code:code,records_returned:records.length,api_status:data?.code??null,checked_at:new Date().toISOString(),ready_for_mapping:records.length>0}));
