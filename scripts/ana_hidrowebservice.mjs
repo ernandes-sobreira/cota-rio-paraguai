@@ -27,7 +27,7 @@ const request=async(url,headers,stage)=>{
   }finally{clearTimeout(timer);}
 };
 try{
-  const auth=await request(BASE+'/OAUth/v1',{'Identificador':id,'Senha':password,'Accept':'application/json'},'autenticação');
+  const auth=await request(BASE+'/OAUth/v1',{'Identificador':id,'Senha':password,'Accept':'*/*'},'autenticação');
   const token=auth?.items?.tokenautenticacao ?? auth?.items?.tokenAutenticacao ?? auth?.tokenautenticacao;
   if(typeof token!=='string'||!token)throw new Error('Resposta de autenticação não reconhecida');
   const query=new URLSearchParams({
@@ -38,7 +38,7 @@ try{
   });
   const data=await request(BASE+'/HidroinfoanaSerieTelemetricaAdotada/v1?'+query.toString(),{
     'Authorization':'Bearer '+token,
-    'Accept':'application/json'
+    'Accept':'*/*'
   },'consulta da série');
   const records=Array.isArray(data?.items)?data.items:[];
   // Não imprimir token, CPF, senha, cabeçalhos, ou payload bruto nos logs.
