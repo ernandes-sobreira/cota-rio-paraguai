@@ -4,5 +4,4 @@ compatibility_date = "2026-10-01"
 [[kv_namespaces]]
 binding = "ANA_CACHE"
 id = "SUBSTITUIR_POR_ID_KV"
-[triggers]
-crons = ["17 12 * * *"]
+# Agendamento desativado até validação do acesso ANA e aprovação do volume de consultas.
