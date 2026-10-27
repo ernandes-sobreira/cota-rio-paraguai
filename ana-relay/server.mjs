@@ -29,4 +29,4 @@ const server=http.createServer((req,res)=>{
   if(req.method==='GET'&&path==='/health')return send(res,200,{service:'ana-hidroweb-relay',status:'diagnostic_only',ana_connected:diagnostic==='auth_success',diagnostic,public_data:false});
   return send(res,503,{status:'integration_not_activated'});
 });
-server.listen(PORT,'0.0.0.0',()=>{console.log('ANA relay listening');void checkOnce();});
+server.listen(PORT,'0.0.0.0',()=>{console.log('ANA relay listening');console.log('ANA automatic authentication disabled pending provider clarification');});
