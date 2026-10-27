@@ -9,7 +9,7 @@ const BASE='https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas';
 const code=process.argv[2] || '66070004';
 if(!/^\d{7,10}$/.test(code)){console.error('Código de estação inválido');process.exit(2);}
 const id=(process.env.ANA_IDENTIFICADOR||'').trim().replace(/[.\-\s]/g,'');
-const password=(process.env.ANA_SENHA||'').replace(/\r?\n$/,'').trim();
+const password=process.env.ANA_SENHA||'';
 if(!/^\d{11}$/.test(id)){console.error('ANA_IDENTIFICADOR inválido: esperado CPF com 11 dígitos. Confira o Secret, sem compartilhar o valor.');process.exit(2);}
 if(!password){console.error('ANA_SENHA ausente. Confira o Secret, sem compartilhar o valor.');process.exit(2);}
 const request=async(url,headers,stage)=>{
@@ -31,10 +31,9 @@ try{
   const token=auth?.items?.tokenautenticacao ?? auth?.items?.tokenAutenticacao ?? auth?.tokenautenticacao;
   if(typeof token!=='string'||!token)throw new Error('Resposta de autenticação não reconhecida');
   const query=new URLSearchParams({
-    'Código da Estação':code,
-    'Tipo Filtro Data':'DATA_LEITURA',
-    'Data de Busca (yyyy-MM-dd)':new Date().toISOString().slice(0,10),
-    'Range Intervalo de busca':'DIAS_7'
+    'CodigoDaEstacao':code,
+    'TipoFiltroData':'DATA_LEITURA',
+    'RangeIntervaloDeBusca':'DIAS_30'
   });
   const data=await request(BASE+'/HidroinfoanaSerieTelemetricaAdotada/v1?'+query.toString(),{
     'Authorization':'Bearer '+token,
