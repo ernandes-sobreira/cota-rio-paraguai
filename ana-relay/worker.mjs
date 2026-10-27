@@ -25,7 +25,7 @@ async function refresh(env){
   if(typeof token!=='string'||!token)throw new Error('Token ausente');
   const results={schema_version:1,source:'ANA HidroWebService',checked_at:new Date().toISOString(),stations:{}};
   for(const [name,code] of Object.entries(STATIONS)){
-    const q=new URLSearchParams({'Código da Estação':code,'Tipo Filtro Data':'DATA_LEITURA','Data de Busca (yyyy-MM-dd)':new Date().toISOString().slice(0,10),'Range Intervalo de busca':'DIAS_7'});
+    const q=new URLSearchParams({'CodigoDaEstacao':code,'TipoFiltroData':'DATA_LEITURA','RangeIntervaloDeBusca':'DIAS_30'});
     const response=await ana(BASE+'/HidroinfoanaSerieTelemetricaAdotada/v1?'+q,{Authorization:'Bearer '+token,Accept:'*/*'});
     // Quarentena: não publicar dados cujo esquema e unidade ainda não tenham sido
     // verificados. Somente metadados genéricos são gravados neste estágio.
