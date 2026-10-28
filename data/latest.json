@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
   "source_url": "https://www.marinha.mil.br/chn-6/",
-  "checked_at": "2026-10-28T11:58:28Z",
+  "checked_at": "2026-10-28T17:11:40+00:00",
   "last_success_at": "2026-10-28T11:58:28Z",
-  "fetch_status": "verified_web",
+  "fetch_status": "error",
   "stations": [
     {
       "station": "Cáceres",
@@ -63,7 +63,7 @@
       "snapshot_sha256": "441194a468e1ee41c7c9a6575e9ee1fd718a28bcd128d593dd66dd4452acc10a"
     }
   ],
-  "error": null,
+  "error": "HTTPError: HTTP Error 403: Forbidden",
   "timezone": "America/Campo_Grande",
   "schedule_local": [
     "07:20",
@@ -71,7 +71,7 @@
     "10:20",
     "14:20"
   ],
-  "last_direct_attempt_at": "2026-10-27T22:22:47+00:00",
+  "last_direct_attempt_at": "2026-10-28T17:11:40+00:00",
   "direct_status": "unavailable",
   "observation_status": "current",
   "stale_stations": [],
