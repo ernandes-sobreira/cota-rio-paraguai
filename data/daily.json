@@ -967,5 +967,62 @@
     "collected_at": "2026-10-27T12:04:19Z",
     "collection_method": "verified_public_web",
     "snapshot_sha256": "092c69857296aa80066c11fce8f7cd2c96c453dadae31e68674cccab822c8ab6"
+  },
+  {
+    "station": "Cáceres",
+    "date": "2026-10-28",
+    "level_m": 0.71,
+    "variation_m": -0.08,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "28/10/2026",
+      "Cáceres",
+      "0,71 M;",
+      "-0,08 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-10-28T11:58:28Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "441194a468e1ee41c7c9a6575e9ee1fd718a28bcd128d593dd66dd4452acc10a"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-10-28",
+    "level_m": 1.07,
+    "variation_m": -0.03,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "28/10/2026",
+      "Ladário",
+      "1,07 M;",
+      "-0,03 M;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-10-28T11:58:28Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "441194a468e1ee41c7c9a6575e9ee1fd718a28bcd128d593dd66dd4452acc10a"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-10-28",
+    "level_m": 2.71,
+    "variation_m": -0.02,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "28/10/2026",
+      "Porto Murtinho",
+      "2,71 M;",
+      "-0,02 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-10-28T11:58:28Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "441194a468e1ee41c7c9a6575e9ee1fd718a28bcd128d593dd66dd4452acc10a"
   }
 ]
