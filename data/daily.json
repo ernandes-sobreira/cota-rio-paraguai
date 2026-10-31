@@ -1086,20 +1086,20 @@
     "station": "Cáceres",
     "date": "2026-10-30",
     "level_m": 0.88,
-    "variation_m": 0.12,
-    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "variation_m": 0.14,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON); AGUARDANDO DISPONIBILIDADE DE DADOS DO DIA 31/10/2026;",
     "source_url": "https://www.marinha.mil.br/chn-6/",
     "measurement_time": null,
     "raw_cells": [
       "30/10/2026",
       "Cáceres",
       "0,88 M;",
-      "+0,12 M",
-      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+      "+0,14 M",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON); AGUARDANDO DISPONIBILIDADE DE DADOS DO DIA 31/10/2026;"
     ],
-    "collected_at": "2026-10-30T11:57:51Z",
+    "collected_at": "2026-10-31T12:03:18Z",
     "collection_method": "verified_public_web",
-    "snapshot_sha256": "fa3f02926910dd87b340d85d0255382a6cc58401a1f7b44c75429d094a30d440"
+    "snapshot_sha256": "aa5f01e6325e9d28c9089c4e32745d987d673c2face364ff7936b25d2711736a"
   },
   {
     "station": "Ladário",
@@ -1138,5 +1138,43 @@
     "collected_at": "2026-10-30T11:57:51Z",
     "collection_method": "verified_public_web",
     "snapshot_sha256": "fa3f02926910dd87b340d85d0255382a6cc58401a1f7b44c75429d094a30d440"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-10-31",
+    "level_m": 1.03,
+    "variation_m": 0.0,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "31/10/2026",
+      "Ladário",
+      "1,03 M;",
+      "ESTACIONADO;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-10-31T12:03:18Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "aa5f01e6325e9d28c9089c4e32745d987d673c2face364ff7936b25d2711736a"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-10-31",
+    "level_m": 2.58,
+    "variation_m": -0.04,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "31/10/2026",
+      "Porto Murtinho",
+      "2,58 M;",
+      "-0,04 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-10-31T12:03:18Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "aa5f01e6325e9d28c9089c4e32745d987d673c2face364ff7936b25d2711736a"
   }
 ]
