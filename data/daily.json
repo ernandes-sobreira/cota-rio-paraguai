@@ -1140,6 +1140,25 @@
     "snapshot_sha256": "fa3f02926910dd87b340d85d0255382a6cc58401a1f7b44c75429d094a30d440"
   },
   {
+    "station": "Cáceres",
+    "date": "2026-10-31",
+    "level_m": 1.15,
+    "variation_m": 0.27,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "31/10/2026",
+      "Cáceres",
+      "1,15 M;",
+      "+0,27 M",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-10-31T18:04:34Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "8a33fc2c48f1f78927e45d0075f59da9bd16539e42d680c521c53640eb674fcd"
+  },
+  {
     "station": "Ladário",
     "date": "2026-10-31",
     "level_m": 1.03,
