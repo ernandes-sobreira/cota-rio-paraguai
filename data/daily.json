@@ -1366,5 +1366,62 @@
     "collected_at": "2026-11-03T12:04:21Z",
     "collection_method": "verified_public_web",
     "snapshot_sha256": "92f2d71f7c0022ee84888ea3b396f75065c0546dced96a0a72f4329ff2c1c4b8"
+  },
+  {
+    "station": "Cáceres",
+    "date": "2026-11-04",
+    "level_m": 1.4,
+    "variation_m": -0.01,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "04/11/2026",
+      "Cáceres",
+      "1,40 M;",
+      "-0,01 M",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-11-04T11:58:05Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "70a65db9b2789b9f6aea2e91027dbb07742546848abf768e344b506b5b0effa4"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-11-04",
+    "level_m": 0.92,
+    "variation_m": -0.03,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "04/11/2026",
+      "Ladário",
+      "0,92 M;",
+      "-0,03 M;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-11-04T11:58:05Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "70a65db9b2789b9f6aea2e91027dbb07742546848abf768e344b506b5b0effa4"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-11-04",
+    "level_m": 2.4,
+    "variation_m": -0.03,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "04/11/2026",
+      "Porto Murtinho",
+      "2,40 M;",
+      "-0,03 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-11-04T11:58:05Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "70a65db9b2789b9f6aea2e91027dbb07742546848abf768e344b506b5b0effa4"
   }
 ]
