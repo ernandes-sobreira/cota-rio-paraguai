@@ -1467,7 +1467,7 @@
     "date": "2026-11-05",
     "level_m": 2.36,
     "variation_m": -0.04,
-    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;AGUARDANDO DISPONIBILIDADE DE DADOS DO DIA 06/11/2026;",
     "source_url": "https://www.marinha.mil.br/chn-6/",
     "measurement_time": null,
     "raw_cells": [
@@ -1475,10 +1475,48 @@
       "Porto Murtinho",
       "2,36 M;",
       "-0,04 M;",
-      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;AGUARDANDO DISPONIBILIDADE DE DADOS DO DIA 06/11/2026;"
     ],
-    "collected_at": "2026-11-05T11:57:56Z",
+    "collected_at": "2026-11-06T11:59:04Z",
     "collection_method": "verified_public_web",
-    "snapshot_sha256": "48b5470a9747ee8568bbf25c7f770291ec0a473d709da3d16908c25127d860ee"
+    "snapshot_sha256": "74ca77618bb12ac3b1a8210064a7ab0ea216f35d6175748bc0440f60231921f4"
+  },
+  {
+    "station": "Cáceres",
+    "date": "2026-11-06",
+    "level_m": 1.33,
+    "variation_m": -0.03,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "06/11/2026",
+      "Cáceres",
+      "1,33 M;",
+      "-0,03 M",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-11-06T11:59:04Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "74ca77618bb12ac3b1a8210064a7ab0ea216f35d6175748bc0440f60231921f4"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-11-06",
+    "level_m": 0.88,
+    "variation_m": -0.02,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "06/11/2026",
+      "Ladário",
+      "0,88 M;",
+      "-0,02 M;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-11-06T11:59:04Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "74ca77618bb12ac3b1a8210064a7ab0ea216f35d6175748bc0440f60231921f4"
   }
 ]
