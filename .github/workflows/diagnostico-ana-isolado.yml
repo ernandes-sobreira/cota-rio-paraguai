@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate:
-    if: github.run_attempt == 1 && github.event.head_commit.message == 'fix(ana): validar integracao isolada 20261107'
+    if: ${{ github.run_attempt == 1 && github.event.head_commit.message == 'validar-ana-20261107-unico' }}
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
