@@ -1,13 +1,11 @@
 name: Conferir conectividade publica ANA
 on:
-  push:
-    branches: [corrigir-ana-api-20261107]
-    paths: ['.github/workflows/ana-public-probe.yml']
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
   probe:
-    if: ${{ github.run_attempt == 1 && github.event.head_commit.message == 'conferir-ana-publica-20261107-unico' }}
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
