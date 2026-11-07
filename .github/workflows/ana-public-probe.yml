@@ -1,0 +1,46 @@
+name: Conferir conectividade publica ANA
+on:
+  push:
+    branches: [corrigir-ana-api-20261107]
+    paths: ['.github/workflows/ana-public-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: ${{ github.run_attempt == 1 && github.event.head_commit.message == 'conferir-ana-publica-20261107-unico' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ler rotas publicas sem credenciais
+        run: |
+          node --input-type=module <<'JS'
+          import https from 'node:https';
+          const urls = [
+            'https://www.ana.gov.br/hidrowebservice/api-docs/swagger-config',
+            'https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas/OAUth/v1'
+          ];
+          function summary(label,status,headers,body,ms) {
+            const safeHeaders = Object.fromEntries(['date','content-type','server','content-length'].filter(k=>headers[k]).map(k=>[k,headers[k]]));
+            let detail;
+            try {const j=JSON.parse(body); detail={status:j.status,error:j.error,path:j.path};}
+            catch {detail={title:body.match(/<title[^>]*>([^<]{0,300})<\/title>/i)?.[1],headings:[...body.matchAll(/<h[12][^>]*>([\s\S]*?)<\/h[12]>/gi)].map(x=>x[1].replace(/<[^>]*>/g,'').slice(0,300)).slice(0,5)};}
+            console.log(JSON.stringify({label,status,headers:safeHeaders,bytes:Buffer.byteLength(body),ms,...detail}));
+          }
+          for (const url of urls) {
+            const t=Date.now();
+            try {const r=await fetch(url,{headers:{Accept:'*/*'},signal:AbortSignal.timeout(60000),redirect:'error'});const b=await r.text(); summary('fetch '+new URL(url).pathname,r.status,Object.fromEntries(r.headers),b,Date.now()-t);}
+            catch {console.log(JSON.stringify({label:'fetch '+new URL(url).pathname,error:'network_or_timeout',ms:Date.now()-t}));}
+          }
+          const t=Date.now();
+          await new Promise(resolve=>{
+            const request=https.get(urls[1],{headers:{Accept:'*/*'},timeout:60000},r=>{
+              let b='';r.setEncoding('utf8');r.on('data',c=>{b+=c;if(b.length>50000)request.destroy();});
+              r.on('end',()=>{summary('https.get authentication path WITHOUT credentials',r.statusCode,r.headers,b,Date.now()-t);resolve();});
+            });
+            request.on('timeout',()=>request.destroy());
+            request.on('error',()=>{console.log(JSON.stringify({label:'https.get WITHOUT credentials',error:'network_or_timeout',ms:Date.now()-t}));resolve();});
+          });
+          JS
