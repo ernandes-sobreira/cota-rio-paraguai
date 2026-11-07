@@ -8,7 +8,7 @@ function validFeed(feed){return validMarinhaFeed(feed);}
 function validTelemetry(feed){return feed&&feed.unit==='m'&&Number.isFinite(Date.parse(feed.fetched_at))&&STATIONS.every(name=>feed.stations&&feed.stations[name]&&Array.isArray(feed.stations[name].daily)&&feed.stations[name].daily.every(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday()&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max)&&r.min<=r.mean&&r.mean<=r.max&&r.n>0));}
 function canReplace(feed){return canReplaceMarinhaFeed(feed,latest);}
 function current(name){return latest.stations.find(s=>s.station===name);}
-function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: intervalos sem dados ANA são lacunas reais; traços SGB são boletins isolados, não medições diárias contínuas.';}
+function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: intervalos sem dados ANA são lacunas reais; a linha fina SGB liga boletins semanais, sem medições nos dias intermediários.';}
 function render(){
  telemetry.marinhaArchive=marinhaArchive;telemetry.latestReadings=latest.stations;
  document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive,telemetry);
@@ -35,7 +35,7 @@ function render(){
 function renderOverlay(){
  const host=document.getElementById('overlay-chart'),relative=document.getElementById('comparison-metric').value==='relative',series=comparisonSeries(overview,telemetry,mode,telemetry.year,Array.from(visible));
  overlayGraph=comparisonGraph(series,{mode,year:telemetry.year,width:host.clientWidth||Math.min(1040,Math.max(300,window.innerWidth-95)),relative});
- host.innerHTML=overlayGraph.svg;const readout=document.getElementById('overlay-readout');readout.textContent=mode==='year'?'Linha contínua: ANA · tracejada: Marinha · ponto: última observação · traços isolados: SGB':mode==='season'?'Médias do mesmo dia do calendário · 1966–2025':'Médias anuais · 1966–2025';
+ host.innerHTML=overlayGraph.svg;const readout=document.getElementById('overlay-readout');readout.textContent=mode==='year'?'Linha contínua: ANA · tracejada: Marinha · ponto: última observação · linha fina: boletins SGB':mode==='season'?'Médias do mesmo dia do calendário · 1966–2025':'Médias anuais · 1966–2025';
  document.getElementById('overlay-note').textContent=relative?(overlayGraph.baseline?'Mudança em relação ao primeiro período comum: '+overlayGraph.baseline.label+'. Cada estação parte do seu próprio nível.':'Não há um período comum para esta comparação.'):'Cada régua tem seu próprio zero. Compare o comportamento das curvas; cotas não são altitudes.';
  const svg=host.querySelector('svg');if(svg)bindGraph(svg,overlayGraph,readout);document.getElementById('download-overlay').disabled=!svg;
 }
