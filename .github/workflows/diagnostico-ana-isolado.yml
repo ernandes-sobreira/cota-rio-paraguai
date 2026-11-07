@@ -1,0 +1,32 @@
+name: Verificar integracao ANA isolada
+on:
+  push:
+    branches: [corrigir-ana-api-20261107]
+    paths:
+      - 'scripts/ana_hidrowebservice.mjs'
+      - 'tests/ana-hidrowebservice.test.js'
+      - '.github/workflows/diagnostico-ana-isolado.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ana-hidrowebservice-isolated
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: github.run_attempt == 1 && github.event.head_commit.message == 'fix(ana): validar integracao isolada 20261107'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar cliente sem acesso externo
+        run: |
+          node --check scripts/ana_hidrowebservice.mjs
+          node --test tests/ana-hidrowebservice.test.js
+      - name: Validar autenticacao e consulta uma unica vez
+        env:
+          ANA_IDENTIFICADOR: ${{ secrets.ANA_IDENTIFICADOR }}
+          ANA_SENHA: ${{ secrets.ANA_SENHA }}
+        run: node scripts/ana_hidrowebservice.mjs 66070004
