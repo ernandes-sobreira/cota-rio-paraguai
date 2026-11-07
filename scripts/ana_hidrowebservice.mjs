@@ -4,6 +4,8 @@ import { pathToFileURL } from 'node:url';
 export const BASE = 'https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas';
 export const TIMEOUT_MS = 90000;
 const SAFE_MESSAGES = new Set(['Unauthorized', 'Forbidden', 'Bad Request', 'Internal Server Error', 'Service Unavailable', 'Gateway Timeout', 'Não autorizado', 'Não Autorizado', 'Credenciais inválidas ou ausência de autenticação', 'Credenciais inválidas ou ausência de autenticação.', 'Usuário ou senha inválidos', 'Usuário ou senha inválidos.', 'Usuário bloqueado', 'Usuário bloqueado.', 'Identificador ou senha inválidos', 'Identificador ou senha inválidos.', 'Sucesso']);
+const SAFE_HTML_TITLES = new Set(['503 Service Unavailable', '503 Service Temporarily Unavailable', 'Service Unavailable', 'Access Denied', 'Request Rejected']);
+const SAFE_SERVERS = new Set(['nginx', 'envoy', 'cloudflare', 'Apache']);
 const httpCode = value => /^(?:[1-5]\d{2})$/.test(String(value)) ? Number(value) : null;
 function safeHeaders(headers) {
   const result = {};
@@ -13,7 +15,8 @@ function safeHeaders(headers) {
   if (date && /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(date) && Number.isFinite(Date.parse(date))) result.date = date;
   const size = headers.get('content-length');
   if (size !== null && /^\d{1,9}$/.test(size)) result['content-length'] = Number(size);
-  for (const key of ['server','retry-after','x-request-id','set-cookie','authorization']) if (headers.has(key)) result[key] = '[value omitted]';
+  if (headers.has('server')) result.server = SAFE_SERVERS.has(headers.get('server')) ? headers.get('server') : '[value omitted]';
+  for (const key of ['retry-after','x-request-id','set-cookie','authorization']) if (headers.has(key)) result[key] = '[value omitted]';
   return result;
 }
 
@@ -31,7 +34,21 @@ export function redact(value, secrets = []) {
 export function safeErrorBody(raw, secrets = []) {
   // Error responses may contain unknown tokens. Never output arbitrary text or fields.
   let body;
-  try { body = JSON.parse(raw); } catch { return { format:'non_json', bytes:Buffer.byteLength(raw), text_omitted:true }; }
+  try { body = JSON.parse(raw); } catch {
+    const selected = {format:'non_json', bytes:Buffer.byteLength(raw), text_omitted:true};
+    // Markers describe observed HTML phrases, not a diagnosis of their cause.
+    if (/<(?:!doctype\s+html|html|head|body)\b/i.test(raw)) {
+      const markers = [];
+      if (/\bservice (?:temporarily )?unavailable\b/i.test(raw)) markers.push('service_unavailable');
+      if (/\baccess denied\b/i.test(raw)) markers.push('access_denied');
+      if (/\brequest rejected\b/i.test(raw)) markers.push('request_rejected');
+      if (/\b(?:verify (?:that )?you are (?:a )?human|checking your browser|automated traffic|bot detection|security challenge)\b/i.test(raw)) markers.push('bot_or_security_challenge');
+      selected.html_markers = markers;
+      const title = raw.match(/<title(?:\s[^>]*)?>([^<]*)<\/title\s*>/i)?.[1]?.trim();
+      if (SAFE_HTML_TITLES.has(title)) selected.title = redact(title, secrets);
+    }
+    return selected;
+  }
   if (!body || typeof body !== 'object' || Array.isArray(body)) return { format:'json', omitted:'unexpected_json_shape' };
   const selected = {format:'json'};
   for (const key of ['status','code']) {
@@ -52,6 +69,29 @@ export function seriesUrl(station, date = new Date().toISOString().slice(0, 10))
     'Range Intervalo de busca': 'DIAS_7'
   });
   return BASE + '/HidroinfoanaSerieTelemetricaAdotada/v1?' + query;
+}
+export function inventoryUrl(station) {
+  return BASE + '/HidroInventarioEstacoes/v1?' + new URLSearchParams({'Código da Estação':station});
+}
+function numericCoordinate(value, bound) {
+  if (!(typeof value === 'number' || (typeof value === 'string' && /^-?\d+(?:\.\d+)?$/.test(value.trim())))) return null;
+  const number = Number(value);
+  return Number.isFinite(number) && Math.abs(number) <= bound ? number : null;
+}
+function inventorySummary(data, station, sanitizeText) {
+  if (!Array.isArray(data?.items)) throw new AnaError('unexpected_inventory_shape');
+  const selected = data.items.filter(item => String(item?.codigoestacao) === station).map(item => ({
+    station_code:station,
+    station_name:typeof item.Estacao_Nome === 'string' ? sanitizeText(item.Estacao_Nome).slice(0,160) : null,
+    municipality:typeof item.Municipio_Nome === 'string' ? sanitizeText(item.Municipio_Nome).slice(0,160) : null,
+    state:typeof item.UF_Estacao === 'string' && /^[A-Z]{2}$/.test(item.UF_Estacao) ? item.UF_Estacao : null,
+    station_type:typeof item.Tipo_Estacao === 'string' ? sanitizeText(item.Tipo_Estacao).slice(0,80) : null,
+    operating:/^[01]$/.test(String(item.Operando)) ? Number(item.Operando) : null,
+    latitude:numericCoordinate(item.Latitude,90), longitude:numericCoordinate(item.Longitude,180)
+  }));
+  return {stage:'inventory', station_code:station, outcome:selected.length ? 'success' : 'no_matching_station',
+    records_returned:data.items.length, matching_station_records:selected.length,
+    stations:selected, public_data_changed:false};
 }
 export class AnaError extends Error {
   constructor(kind) { super(kind); this.name = 'AnaError'; this.kind = kind; }
@@ -106,23 +146,44 @@ export async function requestJson(url, headers, stage, options = {}) {
     throw new AnaError(kind);
   } finally { clearTimeout(timer); }
 }
-export async function run({ env = process.env, station = '66070004', fetchImpl = fetch,
-  emit = value => console.log(JSON.stringify(value)), timeoutMs = TIMEOUT_MS, date } = {}) {
+function summarizeSeries(data, station) {
+  const mismatched = data.items.filter(r => r?.codigoestacao != null && String(r.codigoestacao) !== station).length;
+  const measurements = data.items.filter(r => r?.codigoestacao == null || String(r.codigoestacao) === station).filter(r => typeof r?.Data_Hora_Medicao === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})?$/.test(r.Data_Hora_Medicao))
+    .filter(r => typeof r.Cota_Adotada === 'number' || (typeof r.Cota_Adotada === 'string' && /^-?\d+(?:\.\d+)?$/.test(r.Cota_Adotada.trim())))
+    .map(r => ({measured_at:r.Data_Hora_Medicao.slice(0, 19), level_cm:Number(r.Cota_Adotada), Cota_Adotada_Status:/^[012]$/.test(String(r.Cota_Adotada_Status)) ? Number(r.Cota_Adotada_Status) : null}))
+    .filter(r => Number.isFinite(r.level_cm) && Math.abs(r.level_cm) < 100000).sort((a,b) => a.measured_at.localeCompare(b.measured_at));
+  const result = {stage:'series', outcome:measurements.length ? 'success' : data.items.length ? 'no_valid_measurements' : 'empty_result', source:'ANA HidroWebService', station_code:station,
+    records_returned:data.items.length, valid_level_records:measurements.length, mismatched_station_records:mismatched, ready_for_mapping:measurements.length > 0,
+    latest_measurement:measurements.at(-1) ?? null, checked_at:new Date().toISOString(), public_data_changed:false};
+  return result;
+}
+// Manual token validity is 60 minutes. Stop five minutes early; never refresh implicitly.
+export const SESSION_TTL_MS = 55 * 60 * 1000;
+function validateStations(stations) {
+  if (!Array.isArray(stations) || stations.length < 1 || stations.length > 10 ||
+      stations.some(station => typeof station !== 'string' || !/^\d{7,10}$/.test(station))) {
+    throw new AnaError('invalid_configuration');
+  }
+  return [...new Set(stations)];
+}
+export async function openSession({ env = process.env, fetchImpl = fetch,
+  emit = value => console.log(JSON.stringify(value)), timeoutMs = TIMEOUT_MS, now = Date.now } = {}) {
   const rawId = env.ANA_IDENTIFICADOR || '';
   const id = rawId.trim().replace(/[.\-\/\s]/g, '');
   const password = env.ANA_SENHA || ''; // Do not trim or otherwise change the password.
   const secrets = [rawId, id, password];
-  let token;
+  let token = '', closed = false;
   const sanitize = value => typeof value === 'string' ? redact(value, secrets) : Array.isArray(value) ? value.map(sanitize) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key,item])=>[key,sanitize(item)])) : value;
-  const safeEmit = value => emit(sanitize(value));
-  if (!/^\d{7,10}$/.test(station) || !/^(?:\d{11}|\d{14})$/.test(id) || !password || /[\r\n]/.test(password)) {
-    safeEmit({stage:'configuration', outcome:'invalid_configuration', station_valid:/^\d{7,10}$/.test(station),
+  const safeEmit = value => { const safe = sanitize(value); emit(safe); return safe; };
+  if (!/^(?:\d{11}|\d{14})$/.test(id) || !password || /[\r\n]/.test(password)) {
+    safeEmit({stage:'configuration', outcome:'invalid_configuration',
       identifier_valid:/^(?:\d{11}|\d{14})$/.test(id), password_present:!!password,
       password_contains_linebreak:/[\r\n]/.test(password)});
     throw new AnaError('invalid_configuration');
   }
   safeEmit({stage:'configuration', outcome:'valid', password_has_edge_whitespace:password !== password.trim(), timeout_ms:timeoutMs});
   const options = {fetchImpl, emit:safeEmit, secrets, timeoutMs};
+  const openedAt = now();
   const auth = await requestJson(BASE+'/OAUth/v1', {Identificador:id, Senha:password, Accept:'*/*'}, 'authentication', options);
   token = auth?.items?.tokenautenticacao ?? auth?.items?.tokenAutenticacao ?? auth?.tokenautenticacao;
   if (typeof token !== 'string' || !token || /[\r\n]/.test(token)) {
@@ -130,25 +191,86 @@ export async function run({ env = process.env, station = '66070004', fetchImpl =
     throw new AnaError('missing_or_invalid_token');
   }
   secrets.push(token);
-  safeEmit({stage:'authentication', outcome:'token_obtained'});
-  const data = await requestJson(seriesUrl(station, date), {Authorization:'Bearer '+token, Accept:'*/*'}, 'series', options);
-  if (!Array.isArray(data?.items)) {
-    safeEmit({stage:'series', outcome:'unexpected_records_shape'});
-    throw new AnaError('unexpected_records_shape');
-  }
-  const mismatched = data.items.filter(r => r?.codigoestacao != null && String(r.codigoestacao) !== station).length;
-  const measurements = data.items.filter(r => r?.codigoestacao == null || String(r.codigoestacao) === station).filter(r => typeof r?.Data_Hora_Medicao === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(r.Data_Hora_Medicao))
-    .filter(r => typeof r.Cota_Adotada === 'number' || (typeof r.Cota_Adotada === 'string' && /^-?\d+(?:\.\d+)?$/.test(r.Cota_Adotada.trim())))
-    .map(r => ({measured_at:r.Data_Hora_Medicao.slice(0, 19), level_cm:Number(r.Cota_Adotada)}))
-    .filter(r => Number.isFinite(r.level_cm) && Math.abs(r.level_cm) < 100000).sort((a,b) => a.measured_at.localeCompare(b.measured_at));
-  const result = {stage:'series', outcome:measurements.length ? 'success' : data.items.length ? 'no_valid_measurements' : 'empty_result', source:'ANA HidroWebService', station_code:station,
-    records_returned:data.items.length, valid_level_records:measurements.length, mismatched_station_records:mismatched, ready_for_mapping:measurements.length > 0,
-    latest_measurement:measurements.at(-1) ?? null, checked_at:new Date().toISOString(), public_data_changed:false};
-  safeEmit(result);
-  return result;
+  safeEmit({stage:'authentication', outcome:'token_obtained', session_ttl_ms:SESSION_TTL_MS, automatic_refresh:false});
+  return Object.freeze({
+    async queryStation(station, date) {
+      validateStations([station]);
+      if (closed) throw new AnaError('session_closed');
+      const elapsed = now() - openedAt;
+      if (!Number.isFinite(elapsed) || elapsed < 0 || elapsed >= SESSION_TTL_MS) {
+        safeEmit({stage:'series', station_code:station, outcome:'session_expired', automatic_refresh:false});
+        throw new AnaError('session_expired');
+      }
+      const stationEmit = event => safeEmit({...event, station_code:station});
+      const data = await requestJson(seriesUrl(station, date), {Authorization:'Bearer '+token, Accept:'*/*'}, 'series', {...options, emit:stationEmit});
+      if (!Array.isArray(data?.items)) {
+        stationEmit({stage:'series', outcome:'unexpected_records_shape'});
+        throw new AnaError('unexpected_records_shape');
+      }
+      const result = summarizeSeries(data, station);
+      return stationEmit(result);
+    },
+    async queryInventory(station) {
+      validateStations([station]);
+      if (closed) throw new AnaError('session_closed');
+      const elapsed = now() - openedAt;
+      if (!Number.isFinite(elapsed) || elapsed < 0 || elapsed >= SESSION_TTL_MS) {
+        safeEmit({stage:'inventory', station_code:station, outcome:'session_expired', automatic_refresh:false});
+        throw new AnaError('session_expired');
+      }
+      const stationEmit = event => safeEmit({...event, station_code:station});
+      const data = await requestJson(inventoryUrl(station), {Authorization:'Bearer '+token, Accept:'*/*'}, 'inventory', {...options, emit:stationEmit});
+      const result = sanitize(inventorySummary(data, station, text => redact(text, secrets)));
+      return stationEmit(result);
+    },
+    reportSummary(value) { if (closed) throw new AnaError('session_closed'); return safeEmit(value); },
+    close() { closed = true; token = ''; secrets.splice(0); }
+  });
+}
+export async function run({station = '66070004', date, ...options} = {}) {
+  validateStations([station]);
+  const session = await openSession(options);
+  try { return await session.queryStation(station, date); }
+  finally { session.close(); }
+}
+export async function runBatch({stations = ['66070004'], date, includeInventory = true, emit = value => console.log(JSON.stringify(value)), ...options} = {}) {
+  const codes = validateStations(stations);
+  const session = await openSession({...options, emit});
+  const results = [];
+  try {
+    for (const station of codes) {
+      let inventory;
+      if (includeInventory) {
+        try { inventory = await session.queryInventory(station); }
+        catch (error) {
+          inventory = {stage:'inventory', station_code:station, outcome:'failed', reason:error instanceof AnaError ? error.kind : 'internal_error', public_data_changed:false};
+          session.reportSummary(inventory);
+        }
+      }
+      try {
+        const result = await session.queryStation(station, date);
+        results.push(includeInventory ? {...result, inventory, station_identity_verified:inventory.outcome === 'success'} : result);
+      }
+      catch (error) {
+        const failure = {stage:'series', station_code:station, outcome:'failed',
+          reason:error instanceof AnaError ? error.kind : 'internal_error', ready_for_mapping:false, public_data_changed:false};
+        results.push(includeInventory ? {...failure, inventory, station_identity_verified:inventory.outcome === 'success'} : failure);
+        session.reportSummary(failure);
+      }
+    }
+    const successful = results.filter(result => result.ready_for_mapping).length;
+    const failed = results.filter(result => result.outcome === 'failed').length;
+    const summary = {stage:'batch', outcome:successful === results.length ? 'success' : successful ? 'partial_success' : failed ? 'failed' : 'no_valid_measurements',
+      stations_requested:codes.length, successful_stations:successful, failed_stations:failed,
+      results, inventory_requested:includeInventory, automatic_refresh:false, public_data_changed:false};
+    return session.reportSummary(summary);
+  } finally { session.close(); }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  run({station:process.argv[2] || '66070004'}).catch(error => {
+  const stations = process.argv.slice(2).length ? process.argv.slice(2) : ['66070004'];
+  runBatch({stations}).then(result => {
+    if (result.outcome !== 'success') process.exitCode = 1;
+  }).catch(error => {
     console.error(JSON.stringify({outcome:'failed', reason:error instanceof AnaError ? error.kind : 'internal_error'}));
     process.exitCode = 1;
   });
