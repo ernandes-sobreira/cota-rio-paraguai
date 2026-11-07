@@ -1,11 +1,6 @@
 name: Verificar integracao ANA isolada
 on:
-  push:
-    branches: [corrigir-ana-api-20261107]
-    paths:
-      - 'scripts/ana_hidrowebservice.mjs'
-      - 'tests/ana-hidrowebservice.test.js'
-      - '.github/workflows/diagnostico-ana-isolado.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
