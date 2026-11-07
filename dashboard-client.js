@@ -8,7 +8,7 @@ function validFeed(feed){return validMarinhaFeed(feed);}
 function validTelemetry(feed){return feed&&feed.unit==='m'&&Number.isFinite(Date.parse(feed.fetched_at))&&STATIONS.every(name=>feed.stations&&feed.stations[name]&&Array.isArray(feed.stations[name].daily)&&feed.stations[name].daily.every(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday()&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max)&&r.min<=r.mean&&r.mean<=r.max&&r.n>0));}
 function canReplace(feed){return canReplaceMarinhaFeed(feed,latest);}
 function current(name){return latest.stations.find(s=>s.station===name);}
-function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Traços isolados SGB preservam observações sem ligar os dias ausentes.';}
+function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: intervalos sem dados ANA são lacunas reais; traços SGB são boletins isolados, não medições diárias contínuas.';}
 function render(){
  telemetry.marinhaArchive=marinhaArchive;telemetry.latestReadings=latest.stations;
  document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive,telemetry);
@@ -25,7 +25,7 @@ function render(){
  document.getElementById('verified-at').textContent=timeBR(mode==='year'?telemetry.fetched_at:latest.last_success_at);
  document.querySelector('.update-label').innerHTML='<i></i> '+(mode==='year'?'Última consulta · ANA':'Última verificação · Marinha');
  document.getElementById('year-tab').textContent=telemetry.year;
- document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · linha contínua: ANA; tracejada: Marinha. Ponto: última observação de cada local.':mode==='history'?'Mínima, máxima, média e desvio-padrão das cotas diárias de cada ano · 1966–2025':'Distribuição de cada dia do calendário ao longo de 1966–2025';
+ document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · linha contínua: ANA; tracejada: Marinha. Ponto: última observação de cada local.':mode==='history'?'Médias anuais ANA · 1966–2025. A leitura diária atual fica na aba '+telemetry.year+'.':'Distribuição de cada dia do calendário ao longo de 1966–2025';
  document.getElementById('year-coverage').textContent=coverageText();document.getElementById('year-coverage').hidden=mode!=='year';
  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
  document.querySelectorAll('.river-stops a').forEach((a,i)=>{const r=current(STATIONS[i]);a.querySelector('strong').textContent=format(r&&r.level_m)+' m';a.querySelector('small').textContent='Marinha · '+dateBR(r&&r.date).slice(0,5);});

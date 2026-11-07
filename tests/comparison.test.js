@@ -36,3 +36,5 @@ test('latest marker picks newest date across sources, not newest ANA alone',()=>
  const graph=comparisonGraph([{name:'Cáceres',color:'#147f9b',rows,marine}],{year:2026});
  assert.equal((graph.svg.match(/<circle /g)||[]).length,1);assert.ok(graph.svg.includes('data-date="2026-11-07"'));
 });
+
+test('annual comparison does not extend the year axis for a daily reference',()=>{const ss=comparisonSeries(overview,data,'history',2026);const graph=comparisonGraph(ss,{mode:'history',current:{station:'Cáceres',date:'2026-11-06',level_m:99}});assert.equal(graph.x1,2025);assert.ok(!graph.svg.includes('>2027<'));assert.ok(!graph.svg.includes('current-reference'));});

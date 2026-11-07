@@ -13,7 +13,7 @@ export function marineReadings(telemetry){
 export function comparisonSeries(overview,telemetry,mode,year,visible=STATIONS){
  return STATIONS.filter(name=>visible.includes(name)).map(name=>{
   const h=overview.stations[name],color=stationColors[STATIONS.indexOf(name)];
-  const rows=mode==='year'?dailyRows(telemetry,name,year).map(r=>({...r,x:calendarX(r.date),label:dateBR(r.date),key:r.date})):mode==='season'?h.profile.map(r=>({x:calendarX(r[0]),key:r[0],label:r[0].split('-').reverse().join('/'),min:r[1],max:r[2],mean:r[3],sd:r[4],n:r[5]})):h.annual.map(r=>({x:r[0]+.5,key:String(r[0]),label:String(r[0]),min:r[1],max:r[2],mean:r[3],sd:r[4],n:r[5]}));
+  const rows=mode==='year'?dailyRows(telemetry,name,year).map(r=>({...r,x:calendarX(r.date),label:dateBR(r.date),key:r.date})):mode==='season'?h.profile.map(r=>({x:calendarX(r[0]),key:r[0],label:r[0].split('-').reverse().join('/'),min:r[1],max:r[2],mean:r[3],sd:r[4],n:r[5]})):h.annual.map(r=>({x:r[0],key:String(r[0]),label:String(r[0]),min:r[1],max:r[2],mean:r[3],sd:r[4],n:r[5]}));
   const supplemental=mode==='year'?(telemetry.supplement||[]).filter(r=>r.station===name&&r.date.startsWith(String(year))).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>({...r,x:calendarX(r.date),mean:r.level_m,key:r.date,label:dateBR(r.date)})):[];
   const marine=mode==='year'?marineReadings(telemetry).filter(r=>r.station===name&&r.date.startsWith(String(year))&&Number.isFinite(r.level_m)).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>({...r,x:calendarX(r.date),mean:r.level_m,key:r.date,label:dateBR(r.date)})):[];
   return {name,color,rows,supplemental,marine};
@@ -27,12 +27,12 @@ export function comparisonGraph(series,{mode='year',width=1000,relative=false,ba
  for(const s of plotted)s.marine=relative&&!baseline?[]:(s.marine||[]).map(r=>({...r,mean:r.mean-s.offset}));
  if(mode==='year'&&current&&!relative){const station=plotted.find(s=>s.name===current.station);if(station&&current.date.startsWith(String(year))&&Number.isFinite(current.level_m)){station.marine=station.marine.filter(r=>r.date!==current.date);station.marine.push({...current,x:calendarX(current.date),mean:current.level_m,key:current.date,label:dateBR(current.date)});station.marine.sort((a,b)=>a.date.localeCompare(b.date));}}
  const all=plotted.flatMap(s=>s.rows),currentX=current?(mode==='history'?decimalYear(current.date):calendarX(current.date)):null;
- const x0=mode==='history'?1966:0,x1=mode==='history'?Math.max(2026,currentX?Math.ceil(currentX):2026):365;
+ const x0=mode==='history'?Math.min(...all.map(r=>r.x),1966):0,x1=mode==='history'?Math.max(...all.map(r=>r.x),1967):365;
  if(!all.length&&!plotted.some(s=>s.marine.length||s.supplemental.length))return {svg:'<div class="plot-empty">'+(series.length?'Ainda não há observações verificadas neste recorte.':'Selecione uma estação para comparar.')+'</div>',rows:[],series:plotted,W,L,R,x0,x1,baseline};
  const vals=all.flatMap(r=>bands?[r.min,r.max,r.mean+(r.sd||0),r.mean-(r.sd||0)]:[r.mean]);
  plotted.forEach(s=>(s.supplemental||[]).forEach(r=>vals.push(r.mean)));
  plotted.forEach(s=>s.marine.forEach(r=>vals.push(r.mean)));
- if(current&&!relative)vals.push(current.level_m);
+ if(mode==='season'&&current&&!relative)vals.push(current.level_m);
  const min=Math.min(...vals),max=Math.max(...vals),span=Math.max(.2,max-min),lo=Math.min(0,min)-span*.08,hi=max+span*.13;
  const X=x=>L+(x-x0)/(x1-x0)*(W-L-R),Y=y=>T+(hi-y)/(hi-lo)*(H-T-B);
  const gap=mode==='history'?1.5:1.5;
@@ -57,7 +57,7 @@ export function comparisonGraph(series,{mode='year',width=1000,relative=false,ba
   const last=candidates.reduce((a,r)=>!a||r.x>=a.x?r:a,null);
   if(last)svg+=`<circle class="latest-marker" data-station="${escapeHTML(s.name)}" data-date="${escapeHTML(last.date||last.key||'')}" cx="${X(last.x)}" cy="${Y(last.mean)}" r="5" fill="${s.color}" stroke="white" stroke-width="2"><title>${escapeHTML(s.name)} · última observação disponível · ${last.source} · ${last.label} · ${format(last.mean)} m${relative?' de mudança':''}</title></circle>`;
  }
- if(mode!=='year'&&current&&!relative){const mx=X(currentX),my=Y(current.level_m);svg+=`<circle class="current-reference" cx="${mx}" cy="${my}" r="6" fill="#bd5d36" stroke="white" stroke-width="2"/>`;}
+ if(mode==='season'&&current&&!relative){const mx=X(currentX),my=Y(current.level_m);svg+=`<circle class="current-reference" cx="${mx}" cy="${my}" r="6" fill="#bd5d36" stroke="white" stroke-width="2"/>`;}
  svg+=`<line class="hover-line" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="#647e8d" stroke-dasharray="3 3" visibility="hidden"/></svg>`;
  return {svg,rows:all,series:plotted,W,L,R,x0,x1,baseline};
 }
