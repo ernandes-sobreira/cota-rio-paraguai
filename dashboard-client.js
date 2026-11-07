@@ -8,9 +8,9 @@ function validFeed(feed){return validMarinhaFeed(feed);}
 function validTelemetry(feed){return feed&&feed.unit==='m'&&Number.isFinite(Date.parse(feed.fetched_at))&&STATIONS.every(name=>feed.stations&&feed.stations[name]&&Array.isArray(feed.stations[name].daily)&&feed.stations[name].daily.every(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=localToday()&&Number.isFinite(r.mean)&&Number.isFinite(r.min)&&Number.isFinite(r.max)&&r.min<=r.mean&&r.mean<=r.max&&r.n>0));}
 function canReplace(feed){return canReplaceMarinhaFeed(feed,latest);}
 function current(name){return latest.stations.find(s=>s.station===name);}
-function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: losangos são leituras pontuais de boletins SGB, sem ligar os dias ausentes.';}
+function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Traços isolados SGB preservam observações sem ligar os dias ausentes.';}
 function render(){
- telemetry.marinhaArchive=marinhaArchive;
+ telemetry.marinhaArchive=marinhaArchive;telemetry.latestReadings=latest.stations;
  document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive,telemetry);
  document.getElementById('source-audit').innerHTML=sourceAuditPanel(latest,telemetry,sourceAudit);
  document.getElementById('source-health').innerHTML=sourceHealth(latest,telemetry);
@@ -25,7 +25,7 @@ function render(){
  document.getElementById('verified-at').textContent=timeBR(mode==='year'?telemetry.fetched_at:latest.last_success_at);
  document.querySelector('.update-label').innerHTML='<i></i> '+(mode==='year'?'Última consulta · ANA':'Última verificação · Marinha');
  document.getElementById('year-tab').textContent=telemetry.year;
- document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · registros ANA por dia; hoje é parcial. Pontos laranja: Marinha; losangos: SGB.':mode==='history'?'Mínima, máxima, média e desvio-padrão das cotas diárias de cada ano · 1966–2025':'Distribuição de cada dia do calendário ao longo de 1966–2025';
+ document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · linha contínua: ANA; tracejada: Marinha. Ponto: última observação de cada local.':mode==='history'?'Mínima, máxima, média e desvio-padrão das cotas diárias de cada ano · 1966–2025':'Distribuição de cada dia do calendário ao longo de 1966–2025';
  document.getElementById('year-coverage').textContent=coverageText();document.getElementById('year-coverage').hidden=mode!=='year';
  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
  document.querySelectorAll('.river-stops a').forEach((a,i)=>{const r=current(STATIONS[i]);a.querySelector('strong').textContent=format(r&&r.level_m)+' m';a.querySelector('small').textContent='Marinha · '+dateBR(r&&r.date).slice(0,5);});
@@ -35,24 +35,25 @@ function render(){
 function renderOverlay(){
  const host=document.getElementById('overlay-chart'),relative=document.getElementById('comparison-metric').value==='relative',series=comparisonSeries(overview,telemetry,mode,telemetry.year,Array.from(visible));
  overlayGraph=comparisonGraph(series,{mode,year:telemetry.year,width:host.clientWidth||Math.min(1040,Math.max(300,window.innerWidth-95)),relative});
- host.innerHTML=overlayGraph.svg;const readout=document.getElementById('overlay-readout');readout.textContent=mode==='year'?'Médias dos registros de cada dia · ANA · pontos laranja Marinha · ◇ SGB às 7h':mode==='season'?'Médias do mesmo dia do calendário · 1966–2025':'Médias anuais · 1966–2025';
+ host.innerHTML=overlayGraph.svg;const readout=document.getElementById('overlay-readout');readout.textContent=mode==='year'?'Linha contínua: ANA · tracejada: Marinha · ponto: última observação · traços isolados: SGB':mode==='season'?'Médias do mesmo dia do calendário · 1966–2025':'Médias anuais · 1966–2025';
  document.getElementById('overlay-note').textContent=relative?(overlayGraph.baseline?'Mudança em relação ao primeiro período comum: '+overlayGraph.baseline.label+'. Cada estação parte do seu próprio nível.':'Não há um período comum para esta comparação.'):'Cada régua tem seu próprio zero. Compare o comportamento das curvas; cotas não são altitudes.';
  const svg=host.querySelector('svg');if(svg)bindGraph(svg,overlayGraph,readout);document.getElementById('download-overlay').disabled=!svg;
 }
 function applyLayout(){const layout=document.getElementById('layout').value;document.getElementById('comparar').hidden=layout==='separate';stationRoot.hidden=layout==='overlay';document.getElementById('separate-heading').hidden=layout==='overlay';}
 function bindGraph(svg,graph,readout){
  const series=graph.series||[{name:'',rows:graph.rows}],byX=new Map();
- series.forEach(s=>s.rows.forEach(r=>{if(!byX.has(r.x))byX.set(r.x,r);}));const rows=Array.from(byX.values()).sort((a,b)=>a.x-b.x),line=svg.querySelector('.hover-line');let selected=0;const original=readout.textContent;
+ const observations=s=>[...s.rows.map(r=>({...r,source:'ANA'})),...(s.marine||[]).map(r=>({...r,source:'Marinha'})),...(s.supplemental||[]).map(r=>({...r,source:'SGB'}))];
+ series.forEach(s=>observations(s).forEach(r=>{if(!byX.has(r.x))byX.set(r.x,r);}));const rows=Array.from(byX.values()).sort((a,b)=>a.x-b.x),line=svg.querySelector('.hover-line');let selected=0;const original=readout.textContent;
  if(!rows.length||!line)return;
  function show(index){selected=Math.max(0,Math.min(rows.length-1,index));const r=rows[selected],x=graph.L+(r.x-graph.x0)/(graph.x1-graph.x0)*(graph.W-graph.L-graph.R);line.setAttribute('x1',x);line.setAttribute('x2',x);line.setAttribute('visibility','visible');
-  readout.textContent=r.label+' · '+(series.length>1?series.map(s=>{const v=s.rows.find(v=>v.x===r.x);return s.name+': '+(v?format(v.mean)+' m':'sem registro ANA');}).join(' / '):'mín. '+format(r.min)+' · média '+format(r.mean)+' · máx. '+format(r.max)+' · desvio '+format(r.sd)+' m · n = '+r.n+(mode==='year'?' registros'+(r.partial_day?' · dia parcial':''):mode==='season'?' anos':' dias'));
+  readout.textContent=r.label+' · '+series.map(s=>{const values=observations(s).filter(v=>v.x===r.x);return (s.name?s.name+': ':'')+(values.length?values.map(v=>series.length===1&&v.source==='ANA'?'ANA mín. '+format(v.min)+' · média '+format(v.mean)+' · máx. '+format(v.max)+' · desvio '+format(v.sd)+' m · n = '+v.n+(mode==='year'?' registros'+(v.partial_day?' · dia parcial':''):mode==='season'?' anos':' dias'):v.source+' '+format(v.mean)+' m'+(v.partial_day?' (parcial)':'')).join(' / '):'sem observação');}).join(' · ');
  }
  svg.addEventListener('pointermove',e=>{const box=svg.getBoundingClientRect();if(!box.width)return;const x=graph.x0+((e.clientX-box.left)*graph.W/box.width-graph.L)/(graph.W-graph.L-graph.R)*(graph.x1-graph.x0);let best=0;rows.forEach((r,i)=>{if(Math.abs(r.x-x)<Math.abs(rows[best].x-x))best=i;});show(best);});
  const clear=()=>{line.setAttribute('visibility','hidden');readout.textContent=original;};svg.addEventListener('pointerleave',clear);svg.addEventListener('blur',clear);
  svg.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();show(selected+(e.key==='ArrowRight'?1:-1));}if(e.key==='Home'){e.preventDefault();show(0);}if(e.key==='End'){e.preventDefault();show(rows.length-1);}});
 }
 function saveSVG(svg,name){if(!svg)return;const clone=svg.cloneNode(true),view=clone.getAttribute('viewBox').split(' ').map(Number),height=view[3];const cursor=clone.querySelector('.hover-line');if(cursor)cursor.remove();clone.setAttribute('viewBox','0 0 '+view[2]+' '+(height+47));clone.setAttribute('width',view[2]);clone.setAttribute('height',height+47);clone.querySelector('rect').setAttribute('height',height+47);
- const label=document.createElementNS('http://www.w3.org/2000/svg','text');label.setAttribute('x','20');label.setAttribute('y',height+14);label.setAttribute('font-family','sans-serif');label.setAttribute('font-size','8');label.setAttribute('fill','#657786');label.textContent=name+' · Cota Rio Paraguai · '+(mode==='year'?telemetry.year+' · ANA; ◇ SGB; ponto laranja Marinha':'1966–2025 · base histórica do projeto');clone.appendChild(label);const note=label.cloneNode();note.setAttribute('y',height+29);note.textContent='Zeros locais distintos. Lacunas sem interpolação. '+(mode==='year'?'Registros provisórios.':'Continuidade do zero com a régua atual não confirmada.');clone.appendChild(note);
+ const label=document.createElementNS('http://www.w3.org/2000/svg','text');label.setAttribute('x','20');label.setAttribute('y',height+14);label.setAttribute('font-family','sans-serif');label.setAttribute('font-size','8');label.setAttribute('fill','#657786');label.textContent=name+' · Cota Rio Paraguai · '+(mode==='year'?telemetry.year+' · ANA contínua; Marinha tracejada; ponto: última observação':'1966–2025 · base histórica do projeto');clone.appendChild(label);const note=label.cloneNode();note.setAttribute('y',height+29);note.textContent='Zeros locais distintos. Lacunas sem interpolação. '+(mode==='year'?'Registros provisórios.':'Continuidade do zero com a régua atual não confirmada.');clone.appendChild(note);
  saveFile('rio-paraguai-'+(name==='Três estações'?'comparacao':slugs[STATIONS.indexOf(name)])+'-'+mode+'.svg',new XMLSerializer().serializeToString(clone),'image/svg+xml;charset=utf-8');
 }
 function saveFile(name,text,type){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}

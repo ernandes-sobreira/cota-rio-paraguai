@@ -54,7 +54,7 @@ Idealização: **Ernandes Sobreira**. Organização original: **Claumir Cesar Mu
 
 ## V2.4 — conferência Marinha × ANA
 
-A seção de conferência mostra valores e diferenças na mesma data. Foram recuperados 1.017 registros das tabelas oficiais Marinha de 2025 e comparados 1.014 pares elegíveis com a ANA. A comparação anual prioriza Marinha × Marinha; o percentil usa ANA da mesma data × histórico ANA. Sem dado na data exata, não se calcula posição nem diferença entre fontes. Novas leituras Marinha entram como pontos identificados nas curvas; não alteram médias, dispersões ou tendências ANA.
+A seção de conferência mostra valores e diferenças na mesma data. Foram recuperados 1.017 registros das tabelas oficiais Marinha de 2025 e comparados 1.014 pares elegíveis com a ANA. A comparação anual prioriza Marinha × Marinha; o percentil usa ANA da mesma data × histórico ANA. Sem dado na data exata, não se calcula posição nem diferença entre fontes. Novas leituras Marinha entram como linha tracejada separada da ANA, com somente a última observação destacada por estação; não alteram médias, dispersões ou tendências ANA.
 
 - [Auditoria e limitações](AUDITORIA.md)
 - [Pares de dados e leituras horárias ANA](data/source-audit.csv)
