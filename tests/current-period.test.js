@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {currentPeriod} from '../current-period.js';
+const make=(days,year='2026')=>Array.from({length:days},(_,i)=>({date:`${year}-11-${String(i+1).padStart(2,'0')}`,mean:2,partial_day:false}));
+test('same period compares only completed previous days; today excluded',()=>{const t={stations:{A:{daily:[...make(7),{date:'2026-11-08',mean:99}]}}};const h=make(6,'2025').map(r=>({station:'A',date:r.date,value:1}));const q=currentPeriod(t,h,'A','2026-11-07','month');assert.equal(q.current.n,6);assert.equal(q.current.expected,6);assert.equal(q.previous.n,6);assert.equal(q.delta,1);});
+test('missing data and partial days are not silently filled',()=>{const t={stations:{A:{daily:[{date:'2026-11-01',mean:2,partial_day:true},{date:'2026-11-02',mean:null}]}}};const q=currentPeriod(t,[],'A','2026-11-07','month');assert.equal(q.current.n,0);assert.equal(q.current.mean,null);assert.equal(q.delta,null);});
+test('first day of month has no completed period',()=>{const q=currentPeriod({stations:{}},[],'A','2026-11-01','month');assert.equal(q.current.expected,0);assert.equal(q.delta,null);});
+test('Feb 29 compares to valid previous February boundary',()=>{const q=currentPeriod({stations:{}},[],'A','2028-03-01','year');assert.equal(q.priorEnd,'2027-02-28');});

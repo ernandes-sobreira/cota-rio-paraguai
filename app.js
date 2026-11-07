@@ -1,3 +1,4 @@
+import {currentPeriod} from './current-period.js?v=2.5';
 import {DAY,epoch,mean,describe,fit,aggregate,annualTrend,parseCSV} from './math.js';
 import {contextBlock,contextDetails,sourceHealth,sourceAuditPanel,validMarinhaFeed} from './context-core.js?v=2.4';
 const $=id=>document.getElementById(id), $$=s=>[...document.querySelectorAll(s)], N=['Cáceres','Ladário','Porto Murtinho'], colors=['#2781bd','#087c7d','#bd7830'];
@@ -73,7 +74,17 @@ function renderNow(){
  if(stats)$('history-intro').textContent=`${num(historical.length,0)} observações nas três estações. Médias diárias recuperadas da ANA, de 1966 a 31/12/2025; registros de 2026 estão no acompanhamento ANA, com fonte e cobertura próprias.`;
 }
 function selection(){const start=$('hist-start').value,end=$('hist-end').value;if(!start||!end||start>end||start<'1966-01-01'||end>'2025-12-31')throw Error('Escolha datas entre 01/01/1966 e 31/12/2025, com início anterior ou igual ao fim.');return {start,end,scale:$('hist-scale').value,metric:$('hist-metric').value,rows:historical.filter(r=>r.station===station()&&r.date>=start&&r.date<=end)};}
-function renderHistory(){if(!stats)return;let q;try{q=selection();$('hist-error').hidden=true;}catch(e){$('hist-error').textContent=e.message;$('hist-error').hidden=false;historySelection=null;return;}historySelection=q;const s=describe(q.rows,q.start,q.end),a=aggregate(q.rows,q.scale,q.metric);$('hist-metric').disabled=q.scale==='daily';
+function renderCurrentPeriod(){
+ const q=currentPeriod(telemetry,historical,station(),today(),$('current-mode').value);
+ $('current-title').textContent=station()+' · '+today().slice(0,4)+' · até ontem';
+ kpis('current-kpis',[
+ ['Média das médias diárias',num(q.current.mean)+' m','ANA telemetria · registros disponíveis'],
+ ['Mín.–máx. das médias diárias',q.current.n?num(q.current.min)+'–'+num(q.current.max)+' m':'—','Não são extremos intradiários'],
+ ['Cobertura do período',q.current.expected?num(q.current.n/q.current.expected*100,1)+'%':'—',q.current.n+' de '+q.current.expected+' dias; dias parciais excluídos'],
+ ['Diferença para '+q.priorStart.slice(0,4),q.delta==null?'—':signed(q.delta*100,1)+' cm','Diferença descritiva; produtos ANA distintos']]);
+ $('current-note').textContent=`Período: ${date(q.start)} a ${date(q.end)}. Último dia disponível nesta estação: ${date(q.latest)}. Telemetria provisória: média dos registros disponíveis, não média garantida de 24 horas. Comparação histórica: ${date(q.priorStart)} a ${date(q.priorEnd)}, ${q.previous.n} de ${q.previous.expected} dias; média ${num(q.previous.mean)} m. A diferença só aparece com cobertura ≥80% em ambos os períodos. Fontes de métodos distintos; não indica tendência ou alteração ambiental por si só. Hoje e dias marcados parciais não entram. Recalculado automaticamente ao carregar novos dados.`;
+}
+function renderHistory(){if(!stats)return;renderCurrentPeriod();let q;try{q=selection();$('hist-error').hidden=true;}catch(e){$('hist-error').textContent=e.message;$('hist-error').hidden=false;historySelection=null;return;}historySelection=q;const s=describe(q.rows,q.start,q.end),a=aggregate(q.rows,q.scale,q.metric);$('hist-metric').disabled=q.scale==='daily';
  kpis('hist-kpis',[['Média diária',num(s.mean)+' m','do recorte selecionado'],['Mínima observada',num(s.min)+' m','entre os dias disponíveis'],['Máxima observada',num(s.max)+' m','entre os dias disponíveis'],['Cobertura',num(100*s.n/s.expected,1)+'%',num(s.n,0)+' de '+num(s.expected,0)+' dias']]);
  $('hist-title').textContent=station()+' · '+(q.scale==='daily'?'cotas diárias':q.scale==='monthly'?'estatística mensal':'estatística anual');
  chart('history-chart',[{label:station(),points:a.map(r=>({x:epoch(r.date),y:r.value,label:q.scale==='annual'?r.date.slice(0,4):q.scale==='monthly'?r.date.slice(0,7):date(r.date),note:r.n+' dia(s); cobertura '+num(r.coverage*100,1)+'%'}))}],{title:$('hist-title').textContent,gap:q.scale==='daily'?DAY*1.5:q.scale==='monthly'?DAY*40:DAY*550});
@@ -81,7 +92,10 @@ function renderHistory(){if(!stats)return;let q;try{q=selection();$('hist-error'
  const st=stats.stations[station()];chart('season-chart',[{label:'Mediana',color:colors[1],points:st.climatology.filter(r=>r.median!=null).map(r=>({x:r.month,y:r.median,label:months[r.month-1],note:r.n+' dias em '+r.years+' anos'}))}],{title:'Sazonalidade 1991–2020 · '+station(),type:'month',band:st.climatology.filter(r=>r.p10!=null).map(r=>({x:r.month,lo:r.p10,hi:r.p90})),gap:1.5});
  renderCompare();$('summary-table').innerHTML=table(['Estatística','Valor','Definição'],[['Dias disponíveis',num(s.n,0),'Somente valores registrados'],['Dias ausentes',num(s.expected-s.n,0),'Dentro do recorte'],['Média',num(s.mean)+' m','Média dos dias disponíveis'],['Mediana',num(s.median)+' m','Percentil 50'],['Desvio-padrão',num(s.sd)+' m','Amostral (n−1)'],['Percentil 10',num(s.p10)+' m','Distribuição do recorte inteiro'],['Percentil 90',num(s.p90)+' m','Distribuição do recorte inteiro']]);
 }
-function renderCompare(){if(!stats)return;const st=stats.stations[station()];chart('compare-chart',[$('year-a').value,$('year-b').value].map((year,i)=>({label:year,color:colors[i],points:st.monthly.filter(r=>r.period.startsWith(year)&&r.coverage>=.8).map(r=>({x:Number(r.period.slice(5)),y:r.mean,label:months[Number(r.period.slice(5))-1]+' '+year,note:'Cobertura '+num(r.coverage*100,1)+'%'}))})),{type:'month',title:'Comparação entre anos · '+station(),gap:1.5});}
+function renderCompare(){if(!stats)return;const st=stats.stations[station()];
+ const currentYear=today().slice(0,4), currentMonth=today().slice(0,7);
+ const live=aggregate((telemetry.stations?.[station()]?.daily||[]).filter(r=>Number.isFinite(r.mean)&&!r.partial_day&&r.date<today()).map(r=>({date:r.date,value:r.mean})),'monthly').map(r=>({period:r.date.slice(0,7),mean:r.value,coverage:r.coverage}));
+ chart('compare-chart',[$('year-a').value,$('year-b').value].map((year,i)=>({label:year+(year===currentYear?' · ANA telemetria provisória':' · ANA histórico'),color:colors[i],points:(year===currentYear?live:st.monthly).filter(r=>r.period.startsWith(year)&&r.period<currentMonth&&r.coverage>=.8).map(r=>({x:Number(r.period.slice(5)),y:r.mean,label:months[Number(r.period.slice(5))-1]+' '+year,note:'Cobertura '+num(r.coverage*100,1)+'%'}))})),{type:'month',title:'Comparação entre anos · '+station(),gap:1.5});} 
 function renderTrend(){if(!stats)return;const start=Number($('trend-start').value),end=Number($('trend-end').value),metric=$('trend-metric').value,st=stats.stations[station()];
  const valid=Number.isInteger(start)&&Number.isInteger(end)&&start>=1966&&end<=2025&&start<=end;
  const f=valid?annualTrend(st.annual,metric,start,end):null;trendSelection=valid?{start,end,metric}:null;
@@ -105,13 +119,14 @@ async function loadLive(){const anaLoad=loadTelemetry();let feed,archive;liveFal
  try{archive=await (await get((liveFallback?'./data/':base)+'daily.json?t='+Date.now())).json();}catch{try{archive=await (await get('./data/daily.json')).json();}catch{archive=[];archiveUnavailable=true;}}
  if(!validMarinhaFeed(feed)){liveFallback=true;feed=latest.stations?.length?latest:{stations:[],fetch_status:'error'};}
  if(!Array.isArray(feed.stations))feed.stations=[];feed.stations=feed.stations.filter(r=>N.includes(r.station)&&typeof r.level_m==='number'&&Number.isFinite(r.level_m)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=today());
- await anaLoad;if(validMarinhaFeed(latest)&&validMarinhaFeed(feed)&&latest.stations.some(r=>feed.stations.find(x=>x.station===r.station).date<r.date)){feed=latest;liveFallback=true;}latest=feed;daily=Array.isArray(archive)?archive.filter(r=>N.includes(r.station)&&typeof r.level_m==='number'&&Number.isFinite(r.level_m)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=today()):[];renderNow();if(active==='metodo')renderAudit();
+ await anaLoad;if(validMarinhaFeed(latest)&&validMarinhaFeed(feed)&&latest.stations.some(r=>feed.stations.find(x=>x.station===r.station).date<r.date)){feed=latest;liveFallback=true;}latest=feed;daily=Array.isArray(archive)?archive.filter(r=>N.includes(r.station)&&typeof r.level_m==='number'&&Number.isFinite(r.level_m)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&r.date<=today()):[];renderNow();if(active==='metodo')renderAudit();if(active==='historico')renderHistory();
 }
 function download(name,text,type='text/csv;charset=utf-8'){const blob=new Blob([type.startsWith('text/csv')?'\uFEFF':'',text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 const csv=(headers,rows)=>[headers,...rows].map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';')).join('\r\n');
 const slug=()=>station().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replaceAll(' ','-');
 function exportHistory(filtered){let rows=historical.filter(r=>r.station===station());if(filtered){try{const q=selection();rows=q.rows;}catch(e){$('hist-error').textContent=e.message;$('hist-error').hidden=false;return;}}download('cota-'+slug()+(filtered?'-recorte':'-historico')+'.csv',csv(['estacao','data','cota_m','origem'],rows.map(r=>[r.station,r.date,r.value,'ANA_HidroSerieHistorica_media_diaria'])));}
 $$('[data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));$$('[data-go]').forEach(b=>b.onclick=()=>showTab(b.dataset.go,true));$('station').onchange=()=>renderVisible();$('recent-days').onchange=renderNow;$('apply-history').onclick=renderHistory;$('hist-scale').onchange=renderHistory;$('hist-metric').onchange=renderHistory;$('apply-trend').onclick=renderTrend;$('trend-metric').onchange=renderTrend;
+$('current-mode').onchange=renderCurrentPeriod;
 $('year-a').onchange=renderCompare;$('year-b').onchange=renderCompare;
 $('refresh').onclick=async()=>{$('refresh').disabled=true;try{await loadLive();}finally{$('refresh').disabled=false;}};
 $('export-filter').onclick=()=>exportHistory(true);$('download-history').onclick=()=>exportHistory(false);
@@ -120,7 +135,7 @@ $('download-stats').onclick=()=>{if(stats)download('cotas-estatisticas.json',JSO
 $('export-annual').onclick=()=>{if(!stats)return;renderTrend();if(!trendSelection)return;const q=trendSelection;download('cota-'+slug()+'-anuais.csv',csv(['ano','dias','dias_esperados','cobertura','media_m','minima_m','maxima_m','elegivel_tendencia'],stats.stations[station()].annual.filter(a=>a.year>=q.start&&a.year<=q.end).map(a=>[a.year,a.n,a.expected,a.coverage,a.mean,a.min,a.max,a.eligible])));};
 $$('[data-svg]').forEach(b=>b.onclick=()=>{const svg=$(b.dataset.svg).querySelector('svg');if(svg)download('cota-'+slug()+'-'+b.dataset.svg+'.svg',new XMLSerializer().serializeToString(svg),'image/svg+xml');});
 let timer;window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(renderVisible,180);});window.addEventListener('hashchange',()=>showTab(location.hash.slice(1)));
-async function init(){for(const id of ['year-a','year-b'])$(id).innerHTML=Array.from({length:60},(_,i)=>2025-i).map(y=>`<option>${y}</option>`).join('');$('year-a').value='2024';$('year-b').value='2025';
+async function init(){for(const id of ['year-a','year-b'])$(id).innerHTML=Array.from({length:Number(today().slice(0,4))-1966+1},(_,i)=>Number(today().slice(0,4))-i).map(y=>`<option>${y}</option>`).join('');$('year-a').value=String(Number(today().slice(0,4))-1);$('year-b').value=today().slice(0,4);
  const auditLoad=get('./data/source-audit.json').then(r=>r.json()).then(v=>{sourceAudit=v;}).catch(()=>{});
  const live=loadLive();try{const [s,h,o]=await Promise.all([get('./data/statistics.json').then(r=>r.json()),get('./data/history-ana.csv').then(r=>r.text()),get('./data/overview.json').then(r=>r.json())]);stats=s;overview=o;historical=parseCSV(h);showTab(location.hash.slice(1)||'agora');}catch(e){$('error').textContent='Não foi possível carregar o histórico. Verifique a conexão e recarregue a página. Detalhe: '+e.message;$('error').hidden=false;}await Promise.all([live,auditLoad]);renderVisible();}
 init();setInterval(()=>{if(!document.hidden)loadLive().catch(()=>{});},15*60*1000);
