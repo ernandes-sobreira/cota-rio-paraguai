@@ -1594,5 +1594,62 @@
     "collected_at": "2026-11-07T18:05:15Z",
     "collection_method": "verified_public_web",
     "snapshot_sha256": "f1108c99c12d6bd625135147ad9f53191d282d7e5ebe997ccb9614b8cdd5ba6a"
+  },
+  {
+    "station": "Cáceres",
+    "date": "2026-11-08",
+    "level_m": 1.18,
+    "variation_m": -0.05,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "08/11/2026",
+      "Cáceres",
+      "1,18 M;",
+      "-0,05 M",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-11-08T12:04:10Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "a4a528e88dfd99713d6799b05258e03b03baf08bcc6ee3bd2d8da7e22a086775"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-11-08",
+    "level_m": 0.82,
+    "variation_m": -0.03,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "08/11/2026",
+      "Ladário",
+      "0,82 M;",
+      "-0,03 M;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-11-08T12:04:10Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "a4a528e88dfd99713d6799b05258e03b03baf08bcc6ee3bd2d8da7e22a086775"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-11-08",
+    "level_m": 2.27,
+    "variation_m": -0.02,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "08/11/2026",
+      "Porto Murtinho",
+      "2,27 M;",
+      "-0,02 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-11-08T12:04:10Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "a4a528e88dfd99713d6799b05258e03b03baf08bcc6ee3bd2d8da7e22a086775"
   }
 ]
