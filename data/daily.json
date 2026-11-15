@@ -1993,5 +1993,62 @@
     "collected_at": "2026-11-14T17:57:41Z",
     "collection_method": "verified_public_web",
     "snapshot_sha256": "f4afadfaa839f80af13f3b75fbe07c363d533211ca9648baeba0f15101845995"
+  },
+  {
+    "station": "Cáceres",
+    "date": "2026-11-15",
+    "level_m": 1.39,
+    "variation_m": 0.08,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "15/11/2026",
+      "Cáceres",
+      "1,39 M;",
+      "+0,08 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-11-15T12:05:51Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "51a585a72f0c6fa621951b361b73cd1cdc82fa2265f613c37df600bb3f178697"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-11-15",
+    "level_m": 0.78,
+    "variation_m": 0.0,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "15/11/2026",
+      "Ladário",
+      "0,78 M;",
+      "ESTACIONADO;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-11-15T12:05:51Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "51a585a72f0c6fa621951b361b73cd1cdc82fa2265f613c37df600bb3f178697"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-11-15",
+    "level_m": 2.1,
+    "variation_m": 0.0,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "15/11/2026",
+      "Porto Murtinho",
+      "2,10 M;",
+      "ESTACIONADO;",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-11-15T12:05:51Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "51a585a72f0c6fa621951b361b73cd1cdc82fa2265f613c37df600bb3f178697"
   }
 ]
