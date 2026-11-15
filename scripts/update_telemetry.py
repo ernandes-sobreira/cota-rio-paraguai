@@ -7,6 +7,8 @@ Use --recent for rolling 40-day refresh while preserving older aggregated dates.
 The legacy public endpoint may disappear; a failed fetch never erases older days.
 """
 import gzip
+import time
+import urllib.error
 import argparse,calendar,collections,concurrent.futures,csv,datetime,hashlib,json,math,pathlib,statistics,urllib.parse,urllib.request,xml.etree.ElementTree as ET
 STATIONS={'Cáceres':'66070004','Ladário':'66825000','Porto Murtinho':'67100000'}
 ENDPOINT='https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos'
@@ -45,6 +47,24 @@ def summarize(observations,source_id,source_url,today):
         daily.append(dict(date=day,mean=round(statistics.mean(vals),6),min=round(min(vals),6),max=round(max(vals),6),sd=round(statistics.stdev(vals),6) if n>1 else None,n=n,first_timestamp=obs[0][0],last_timestamp=obs[-1][0],source_id=source_id,source_url=source_url,frequency=freq,partial_day=day==today.isoformat(),quality='provisional_observations'))
     return daily
 
+def fetch_public_xml(url, attempts=3, timeout=25):
+    """Bounded retries for transient transport/5xx failures, never access denial.
+
+    No credentials, alternate host, TLS change or fabricated fallback data.
+    XML validation remains outside the retry loop so malformed responses fail.
+    """
+    for attempt in range(attempts):
+        request=urllib.request.Request(url,headers={'User-Agent':'CotaRioParaguai/2.2 public hydrology dashboard'})
+        try:
+            with urllib.request.urlopen(request,timeout=timeout) as response:
+                return response.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code < 500 or attempt == attempts-1: raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if attempt == attempts-1: raise
+        time.sleep(2 * (attempt+1))
+
+
 def fetch_month(item,cache,offline,end):
     name,code,year,month=item
     a=datetime.date(year,month,1);b=min(datetime.date(year,month,calendar.monthrange(year,month)[1]),end)
@@ -53,8 +73,7 @@ def fetch_month(item,cache,offline,end):
     try:
         if offline:content=path.read_bytes()
         else:
-            request=urllib.request.Request(url,headers={'User-Agent':'CotaRioParaguai/2.2 public hydrology dashboard'})
-            with urllib.request.urlopen(request,timeout=50) as response:content=response.read()
+            content=fetch_public_xml(url)
         obs,quality=parse_xml(content,code)
         # Date-only scope uses the source's published calendar. Today is retained as partial.
         obs={t:v for t,v in obs.items() if a.isoformat()<=t[:10]<=b.isoformat()}

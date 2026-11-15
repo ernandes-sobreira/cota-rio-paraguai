@@ -26,3 +26,35 @@ class TelemetryTests(unittest.TestCase):
       for key in ['mean','min','max','sd','n','first_timestamp','last_timestamp','frequency','partial_day']:self.assertEqual(row[key],expected[key],(name,row['date'],key))
       self.assertEqual(baseline['sources'][expected['source_id']]['sha256'],hashlib.sha256(raw).hexdigest())
    self.assertEqual(count,817)
+
+
+class RetryTests(unittest.TestCase):
+ def test_transient_failure_then_success(self):
+  import urllib.error
+  from unittest.mock import patch, MagicMock
+  from update_telemetry import fetch_public_xml
+  response=MagicMock();response.__enter__.return_value.read.return_value=b'<DataTable/>'
+  with patch('update_telemetry.urllib.request.urlopen',side_effect=[urllib.error.URLError('unreachable'),response]) as fetch, patch('update_telemetry.time.sleep') as sleep:
+   self.assertEqual(fetch_public_xml('https://example.test'),b'<DataTable/>')
+   self.assertEqual(fetch.call_count,2);sleep.assert_called_once_with(2)
+ def test_access_denial_is_not_retried(self):
+  import urllib.error
+  from unittest.mock import patch
+  from update_telemetry import fetch_public_xml
+  for code in (401,403,429):
+   with patch('update_telemetry.urllib.request.urlopen',side_effect=urllib.error.HTTPError('url',code,'denied',{},None)) as fetch, patch('update_telemetry.time.sleep') as sleep:
+    with self.assertRaises(urllib.error.HTTPError):fetch_public_xml('https://example.test')
+    self.assertEqual(fetch.call_count,1);sleep.assert_not_called()
+ def test_timeout_exhaustion_is_bounded(self):
+  from unittest.mock import patch
+  from update_telemetry import fetch_public_xml
+  with patch('update_telemetry.urllib.request.urlopen',side_effect=TimeoutError()) as fetch, patch('update_telemetry.time.sleep'):
+   with self.assertRaises(TimeoutError):fetch_public_xml('https://example.test')
+   self.assertEqual(fetch.call_count,3)
+ def test_5xx_is_retried(self):
+  import urllib.error
+  from unittest.mock import patch
+  from update_telemetry import fetch_public_xml
+  with patch('update_telemetry.urllib.request.urlopen',side_effect=urllib.error.HTTPError('url',503,'unavailable',{},None)) as fetch, patch('update_telemetry.time.sleep'):
+   with self.assertRaises(urllib.error.HTTPError):fetch_public_xml('https://example.test')
+   self.assertEqual(fetch.call_count,3)
