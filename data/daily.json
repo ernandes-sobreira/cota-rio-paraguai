@@ -2054,21 +2054,21 @@
   {
     "station": "Cáceres",
     "date": "2026-11-16",
-    "level_m": 1.41,
-    "variation_m": 0.02,
+    "level_m": 1.38,
+    "variation_m": -0.01,
     "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
     "source_url": "https://www.marinha.mil.br/chn-6/",
     "measurement_time": null,
     "raw_cells": [
       "16/11/2026",
       "Cáceres",
-      "1,41 M;",
-      "+0,02 M;",
+      "1,38 M;",
+      "-0,01 M;",
       "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
     ],
-    "collected_at": "2026-11-16T12:40:56Z",
+    "collected_at": "2026-11-16T17:59:49Z",
     "collection_method": "verified_public_web",
-    "snapshot_sha256": "9b3ce21aaf9d8d758a5a6007bb00424ca35a2be54081bfcab32ced7dfeb871c5"
+    "snapshot_sha256": "612f722db9a44a42960fec0d66e997de04656bba919bb6ec1ceb5b1b33548e81"
   },
   {
     "station": "Ladário",
