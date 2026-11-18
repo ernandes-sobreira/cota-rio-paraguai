@@ -11,6 +11,8 @@ function current(name){return latest.stations.find(s=>s.station===name);}
 function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: intervalos sem dados ANA são lacunas reais; a linha fina SGB liga boletins semanais, sem medições nos dias intermediários.';}
 function render(){
  telemetry.marinhaArchive=marinhaArchive;telemetry.latestReadings=latest.stations;
+ document.getElementById('ana-cards').innerHTML=anaSummaryCards(telemetry);
+ document.getElementById('marinha-status').textContent=marinhaStatus(latest);
  document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive,telemetry);
  document.getElementById('source-audit').innerHTML=sourceAuditPanel(latest,telemetry,sourceAudit);
  document.getElementById('source-health').innerHTML=sourceHealth(latest,telemetry);
@@ -28,7 +30,7 @@ function render(){
  document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · linha contínua: ANA; tracejada: Marinha. Ponto: última observação de cada local.':mode==='history'?'Médias anuais ANA · 1966–2025. A leitura diária atual fica na aba '+telemetry.year+'.':'Distribuição de cada dia do calendário ao longo de 1966–2025';
  document.getElementById('year-coverage').textContent=coverageText();document.getElementById('year-coverage').hidden=mode!=='year';
  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
- document.querySelectorAll('.river-stops a').forEach((a,i)=>{const r=current(STATIONS[i]);a.querySelector('strong').textContent=format(r&&r.level_m)+' m';a.querySelector('small').textContent='Marinha · '+dateBR(r&&r.date).slice(0,5);});
+ document.querySelector('.river-stops').innerHTML=anaRiverStops(telemetry);
  STATIONS.forEach((name,i)=>{const svg=document.querySelector('[data-chart="'+slugs[i]+'"] svg');if(svg)bindGraph(svg,graphCache[slugs[i]],document.getElementById('readout-'+slugs[i]));document.querySelector('[data-download="'+slugs[i]+'"]').onclick=()=>saveSVG(svg,name);});
  renderOverlay();applyLayout();
 }

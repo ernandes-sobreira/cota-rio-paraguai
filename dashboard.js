@@ -113,6 +113,22 @@ function yearCardExtras(overview,telemetry,name,current,index,width=850){
 }
 
 /* Shared, deterministic context for both pages. No synthetic observations. */
+function latestAnaReading(telemetry,name,today=localToday()){
+ const rows=telemetry?.stations?.[name]?.daily||[];
+ return rows.reduce((last,r)=>r.date<=today&&Number.isFinite(r.mean)&&(!last||r.date>last.date)?r:last,null);
+}
+function anaSummaryCards(telemetry,today=localToday()){
+ return STATIONS.map(name=>{
+  const r=latestAnaReading(telemetry,name,today);
+  return `<article class="now-card"><div class="now-head"><h3>${name}</h3><span class="source-tag">ANA · provisório</span></div><div class="now-reading"><strong>${r?format(r.mean,3)+'<small> m</small>':'—'}</strong><span>${r?dateBR(r.date):'Sem dados'}${r&&r.date<today?'<small>Leitura anterior a hoje</small>':''}</span></div><p>${r?(r.partial_day?'Média parcial do dia':'Média do dia')+' · '+r.n+' registros':'Nenhuma média ANA publicada'}</p></article>`;
+ }).join('');
+}
+function anaRiverStops(telemetry){
+ return STATIONS.map((name,i)=>{
+  const r=latestAnaReading(telemetry,name);
+  return `<a href="#${slugs[i]}"><b>${name}</b><strong>${r?format(r.mean,3)+' m':'—'}</strong><small>ANA · ${r?dateBR(r.date).slice(0,5)+(r.partial_day?' · parcial':''):'sem dados'}</small></a>`;
+ }).join('');
+}
 function previousCalendarDate(day){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day||''))return null;
  const target=String(Number(day.slice(0,4))-1)+day.slice(4),d=new Date(target+'T12:00:00Z');
@@ -175,6 +191,10 @@ function marinhaFreshness(latest,today=localToday()){
  const stale=STATIONS.filter(name=>!latest.stations?.some(r=>r.station===name&&r.date===today));
  return stale.length?{stale,text:'Marinha sem leitura de hoje: '+stale.join(', ')}:{stale,text:'Marinha: leituras de hoje'};
 }
+function marinhaStatus(latest,today=localToday()){
+ const fresh=marinhaFreshness(latest,today);
+ return (latest.direct_status==='unavailable'||latest.fetch_status==='error'?'Consulta direta indisponível. Últimas leituras preservadas. ':'')+fresh.text+'.';
+}
 function collectionOverdue(latest,now=new Date()){
  const day=localToday(now),times=['07:20','08:20','10:20','14:20'];
  const due=times.map(t=>Date.parse(day+'T'+t+':00-04:00')).filter(t=>t<=now.getTime());
@@ -211,6 +231,8 @@ function current(name){return latest.stations.find(s=>s.station===name);}
 function coverageText(){return STATIONS.map(name=>{const s=telemetry.stations[name],r=dailyRows(telemetry,name,telemetry.year);return name+': '+r.length+' dias'+(r.length?' · até '+dateBR(r[r.length-1].date):'');}).join('  /  ')+'. Porto Murtinho: intervalos sem dados ANA são lacunas reais; a linha fina SGB liga boletins semanais, sem medições nos dias intermediários.';}
 function render(){
  telemetry.marinhaArchive=marinhaArchive;telemetry.latestReadings=latest.stations;
+ document.getElementById('ana-cards').innerHTML=anaSummaryCards(telemetry);
+ document.getElementById('marinha-status').textContent=marinhaStatus(latest);
  document.getElementById('now-cards').innerHTML=summaryCards(latest,overview,marinhaArchive,telemetry);
  document.getElementById('source-audit').innerHTML=sourceAuditPanel(latest,telemetry,sourceAudit);
  document.getElementById('source-health').innerHTML=sourceHealth(latest,telemetry);
@@ -228,7 +250,7 @@ function render(){
  document.getElementById('mode-caption').textContent=mode==='year'?telemetry.year+' · linha contínua: ANA; tracejada: Marinha. Ponto: última observação de cada local.':mode==='history'?'Médias anuais ANA · 1966–2025. A leitura diária atual fica na aba '+telemetry.year+'.':'Distribuição de cada dia do calendário ao longo de 1966–2025';
  document.getElementById('year-coverage').textContent=coverageText();document.getElementById('year-coverage').hidden=mode!=='year';
  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
- document.querySelectorAll('.river-stops a').forEach((a,i)=>{const r=current(STATIONS[i]);a.querySelector('strong').textContent=format(r&&r.level_m)+' m';a.querySelector('small').textContent='Marinha · '+dateBR(r&&r.date).slice(0,5);});
+ document.querySelector('.river-stops').innerHTML=anaRiverStops(telemetry);
  STATIONS.forEach((name,i)=>{const svg=document.querySelector('[data-chart="'+slugs[i]+'"] svg');if(svg)bindGraph(svg,graphCache[slugs[i]],document.getElementById('readout-'+slugs[i]));document.querySelector('[data-download="'+slugs[i]+'"]').onclick=()=>saveSVG(svg,name);});
  renderOverlay();applyLayout();
 }

@@ -5,6 +5,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 import re
 import sys
 import time
@@ -145,9 +146,12 @@ def main(argv=None):
         status.update(fetch_status='error', last_direct_attempt_at=now, direct_status='unavailable', error=f'{type(exc).__name__}: {exc}', **freshness(previous.get('stations', [])))
         dump(latest_path, status)
         print('Falha na coleta; última medição preservada:', str(exc), file=sys.stderr)
-        # A successful run must never hide a refused collection.
+        # The workflow distinguishes this known source refusal from unexpected failures.
         if isinstance(exc, urllib.error.HTTPError) and exc.code == 403:
-            print('::error::Fonte recusou coleta direta (403); última leitura preservada. Nenhum complemento foi confirmado nesta execução.')
+            if output := os.environ.get('GITHUB_OUTPUT'):
+                with open(output, 'a', encoding='utf-8') as handle:
+                    handle.write('refused_403=true\n')
+            print('::warning::Marinha recusou coleta direta (403); última leitura preservada. Nenhum complemento foi confirmado nesta execução.')
         return 1
     return 0
 

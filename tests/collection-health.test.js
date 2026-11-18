@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {STATIONS, timeBR} from '../dashboard-core.js';
 import {
   marinhaFreshness, collectionOverdue, sourceHealth,
-  validMarinhaFeed, canReplaceMarinhaFeed,
+  validMarinhaFeed, canReplaceMarinhaFeed, anaSummaryCards, marinhaStatus,
 } from '../context-core.js';
 
 const TODAY = '2026-10-12';
@@ -131,4 +131,19 @@ test('dashboard refresh says published files were checked and labels ANA by last
   assert.doesNotMatch(context.status.textContent, /Fontes consultadas hoje|ANA consultada hoje|Marinha consultada hoje/);
   assert.equal(context.refresh.disabled, false);
   assert.equal(context.busy, false);
+});
+
+test('ANA headlines retain provenance and never use Marinha as an ANA reading', () => {
+  const stations = {[STATIONS[0]]: {daily: [
+    {date: '2026-10-11', mean: 1.5, n: 10},
+    {date: TODAY, mean: 1.3, n: 4, partial_day: true},
+    {date: '2026-10-13', mean: 9.9, n: 1},
+  ]}};
+  const html = anaSummaryCards({stations}, TODAY);
+  assert.match(html, /ANA · provisório/);
+  assert.match(html, /1,300/);
+  assert.match(html, /Média parcial do dia · 4 registros/);
+  assert.match(html, /Sem dados/);
+  assert.doesNotMatch(html, /Marinha|9,900/);
+  assert.match(marinhaStatus(feed({fetch_status:'error'}), TODAY), /indisponível.*preservadas/);
 });

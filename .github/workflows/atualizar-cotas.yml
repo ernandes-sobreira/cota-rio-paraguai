@@ -65,6 +65,6 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
-      - name: Sinalizar indisponibilidade da fonte
-        if: steps.collect.outcome == 'failure' || steps.ana.outcome == 'failure'
+      - name: Sinalizar falha na ANA ou falha inesperada na Marinha
+        if: steps.ana.outcome == 'failure' || (steps.collect.outcome == 'failure' && steps.collect.outputs.refused_403 != 'true')
         run: exit 1

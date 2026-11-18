@@ -6,12 +6,12 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f8fa">
-  <meta name="description" content="O nível do Rio Paraguai em Cáceres, Ladário e Porto Murtinho. Leituras da Marinha, histórico de 1966–2025 e réguas de referência.">
+  <meta name="description" content="O nível do Rio Paraguai em Cáceres, Ladário e Porto Murtinho. Dados da ANA, leituras da Marinha e histórico de 1966–2025 e réguas de referência.">
   <title>Cota Rio Paraguai · Níveis e histórico</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="dashboard.css?v=2.4">
   <link rel="stylesheet" href="context.css?v=2.4">
-  <script defer src="dashboard.js?v=2.4"></script>
+  <script defer src="dashboard.js?v=2.5"></script>
 </head>
 <body>
   <a class="skip" href="#estacoes">Ir para os gráficos</a>
@@ -28,9 +28,11 @@
       <svg viewBox="0 0 1160 200" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="river-glow"><stop stop-color="#4bbacb"/><stop offset=".55" stop-color="#71dac3"/><stop offset="1" stop-color="#73bbdc"/></linearGradient></defs><path d="M-60 126C90 0 175 226 340 113S620 12 775 117S1030 204 1220 55" fill="none" stroke="#296876" stroke-width="140" opacity=".35"/><path d="M-60 126C90 0 175 226 340 113S620 12 775 117S1030 204 1220 55" fill="none" stroke="url(#river-glow)" stroke-width="84" opacity=".55"/><path class="flow-trace" d="M-60 126C90 0 175 226 340 113S620 12 775 117S1030 204 1220 55" fill="none" stroke="#dcfff6" stroke-width="2" stroke-dasharray="32 65" opacity=".6"/><path class="flow-trace slow" d="M-60 109C90 -17 175 209 340 96S620 -5 775 100S1030 187 1220 38" fill="none" stroke="#dcfff6" stroke-width="1" stroke-dasharray="11 90" opacity=".4"/></svg>
       <div class="river-stops">{{RIVER_STOPS}}</div><span class="scene-caption">RIO PARAGUAI · PERCURSO ESQUEMÁTICO</span><button id="motion-toggle" aria-pressed="false" title="Movimento ilustrativo; não representa velocidade ou vazão">Pausar água Ⅱ</button>
     </section>
-    <section class="now-section" id="agora" aria-labelledby="now-title"><span class="eyebrow">A ÚLTIMA LEITURA, EM PERSPECTIVA</span><h2 id="now-title">Como está o rio?</h2><p class="context-intro">Leituras da Marinha. Comparação anual com a Marinha sempre que disponível. O percentil usa a média ANA do mesmo dia e o histórico ANA de 1966–2025.</p><div id="now-cards" class="now-cards">{{CONTEXT}}</div></section>
+    <section class="now-section" id="agora" aria-labelledby="now-title"><span class="eyebrow">A ÚLTIMA LEITURA, EM PERSPECTIVA</span><h2 id="now-title">Como está o rio?</h2><p class="context-intro">Médias dos registros disponíveis na ANA, fonte principal. Uma média parcial pode mudar até o fim do dia.</p><div id="ana-cards" class="now-cards">{{ANA_CARDS}}</div></section>
+    <section class="now-section" id="marinha" aria-labelledby="marinha-title"><span class="eyebrow">FONTE COMPLEMENTAR</span><h2 id="marinha-title">Últimas leituras da Marinha</h2><p id="marinha-status" role="status">{{MARINHA_STATUS}}</p><p class="context-intro">Leituras da Marinha. Comparação anual com a Marinha sempre que disponível. O percentil usa a média ANA do mesmo dia e o histórico ANA de 1966–2025.</p><div id="now-cards" class="now-cards">{{CONTEXT}}</div></section>
     <section class="source-audit" id="source-audit" aria-label="Comparação ANA e Marinha">{{AUDIT}}</section>
     <section class="source-health" id="source-health" aria-label="Situação da coleta">{{HEALTH}}</section>
+    <p class="coverage-note"><a href="https://sace.sgb.gov.br/bacia_paraguai/ultimo_boletim.php" target="_blank" rel="noopener">SGB · Boletim semanal da bacia do Rio Paraguai ↗</a> · Complemento oficial; não substitui as medições diárias.</p>
     <section class="chart-toolbar" aria-label="Configuração dos gráficos">
       <div class="mode-switch" role="group" aria-label="Escala de tempo"><button data-mode="year" aria-pressed="true" id="year-tab">{{YEAR}}</button><button data-mode="history" aria-pressed="false">Médias anuais</button><button data-mode="season" aria-pressed="false">Ciclo anual</button></div>
       <label class="layout-control">Ver <select id="layout"><option value="both">Juntos + separados</option><option value="overlay">Sobrepostos</option><option value="separate">Separados</option></select></label>

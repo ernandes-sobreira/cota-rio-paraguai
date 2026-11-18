@@ -1,5 +1,21 @@
 import {STATIONS,slugs,escapeHTML,format,dateBR,timeBR,localToday} from './dashboard-core.js';
 /* Shared, deterministic context for both pages. No synthetic observations. */
+export function latestAnaReading(telemetry,name,today=localToday()){
+ const rows=telemetry?.stations?.[name]?.daily||[];
+ return rows.reduce((last,r)=>r.date<=today&&Number.isFinite(r.mean)&&(!last||r.date>last.date)?r:last,null);
+}
+export function anaSummaryCards(telemetry,today=localToday()){
+ return STATIONS.map(name=>{
+  const r=latestAnaReading(telemetry,name,today);
+  return `<article class="now-card"><div class="now-head"><h3>${name}</h3><span class="source-tag">ANA · provisório</span></div><div class="now-reading"><strong>${r?format(r.mean,3)+'<small> m</small>':'—'}</strong><span>${r?dateBR(r.date):'Sem dados'}${r&&r.date<today?'<small>Leitura anterior a hoje</small>':''}</span></div><p>${r?(r.partial_day?'Média parcial do dia':'Média do dia')+' · '+r.n+' registros':'Nenhuma média ANA publicada'}</p></article>`;
+ }).join('');
+}
+export function anaRiverStops(telemetry){
+ return STATIONS.map((name,i)=>{
+  const r=latestAnaReading(telemetry,name);
+  return `<a href="#${slugs[i]}"><b>${name}</b><strong>${r?format(r.mean,3)+' m':'—'}</strong><small>ANA · ${r?dateBR(r.date).slice(0,5)+(r.partial_day?' · parcial':''):'sem dados'}</small></a>`;
+ }).join('');
+}
 export function previousCalendarDate(day){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day||''))return null;
  const target=String(Number(day.slice(0,4))-1)+day.slice(4),d=new Date(target+'T12:00:00Z');
@@ -61,6 +77,10 @@ export function nextScheduled(now=new Date(),times=['07:20','08:20','10:20','14:
 export function marinhaFreshness(latest,today=localToday()){
  const stale=STATIONS.filter(name=>!latest.stations?.some(r=>r.station===name&&r.date===today));
  return stale.length?{stale,text:'Marinha sem leitura de hoje: '+stale.join(', ')}:{stale,text:'Marinha: leituras de hoje'};
+}
+export function marinhaStatus(latest,today=localToday()){
+ const fresh=marinhaFreshness(latest,today);
+ return (latest.direct_status==='unavailable'||latest.fetch_status==='error'?'Consulta direta indisponível. Últimas leituras preservadas. ':'')+fresh.text+'.';
 }
 export function collectionOverdue(latest,now=new Date()){
  const day=localToday(now),times=['07:20','08:20','10:20','14:20'];
