@@ -2221,5 +2221,62 @@
     "collected_at": "2026-11-18T11:57:29Z",
     "collection_method": "verified_public_web",
     "snapshot_sha256": "df715c8b2fd66d4fccb133f9b576cd68cbe5e8021b062a8d74cfc1d972ee37a3"
+  },
+  {
+    "station": "Cáceres",
+    "date": "2026-11-19",
+    "level_m": 1.41,
+    "variation_m": 0.06,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "19/11/2026",
+      "Cáceres",
+      "1,41 M;",
+      "+0,06 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE CÁCERES - (LEITURA SENDO REALIZADA NA PONTE MARECHAL RONDON);"
+    ],
+    "collected_at": "2026-11-19T12:05:15Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "e55f3c49c24372bea21e7e39924d6ab76977c7ec220f31dbb753a4961e3d0211"
+  },
+  {
+    "station": "Ladário",
+    "date": "2026-11-19",
+    "level_m": 0.78,
+    "variation_m": 0.02,
+    "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "19/11/2026",
+      "Ladário",
+      "0,78 M;",
+      "+0,02 M;",
+      "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
+    ],
+    "collected_at": "2026-11-19T12:05:15Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "e55f3c49c24372bea21e7e39924d6ab76977c7ec220f31dbb753a4961e3d0211"
+  },
+  {
+    "station": "Porto Murtinho",
+    "date": "2026-11-19",
+    "level_m": 2.3,
+    "variation_m": 0.19,
+    "observation": "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;",
+    "source_url": "https://www.marinha.mil.br/chn-6/",
+    "measurement_time": null,
+    "raw_cells": [
+      "19/11/2026",
+      "Porto Murtinho",
+      "2,30 M;",
+      "+0,19 M;",
+      "FONTE: AGÊNCIA FLUVIAL DE PORTO MURTINHO;"
+    ],
+    "collected_at": "2026-11-19T12:05:15Z",
+    "collection_method": "verified_public_web",
+    "snapshot_sha256": "e55f3c49c24372bea21e7e39924d6ab76977c7ec220f31dbb753a4961e3d0211"
   }
 ]
