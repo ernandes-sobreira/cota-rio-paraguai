@@ -2587,7 +2587,7 @@
     "station": "Ladário",
     "date": "2026-11-28",
     "level_m": 0.94,
-    "variation_m": -0.01,
+    "variation_m": 0.01,
     "observation": "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;",
     "source_url": "https://www.marinha.mil.br/chn-6/",
     "measurement_time": null,
@@ -2595,12 +2595,12 @@
       "28/11/2026",
       "Ladário",
       "0,94 M;",
-      "-0,01 M;",
+      "+0,01 M;",
       "FONTE : CENTRO DE HIDROGRAFIA E NAVEGAÇÃO DO OESTE;"
     ],
-    "collected_at": "2026-11-28T12:04:39Z",
+    "collected_at": "2026-11-28T17:57:11Z",
     "collection_method": "verified_public_web",
-    "snapshot_sha256": "ef954d13bd0ff7c05b8a50bcbef0012af27e1a4592ae1545ed9f62e6cef11c63"
+    "snapshot_sha256": "6cdc27ed1140e7579f09f3392d16c3c6a874e9e64ad1461d8afd24fa0005e67f"
   },
   {
     "station": "Porto Murtinho",
